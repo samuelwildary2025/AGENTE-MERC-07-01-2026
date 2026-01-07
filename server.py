@@ -329,6 +329,11 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         # Pega a parte antes do @
         if "@" in jid:
             jid = jid.split("@")[0]
+        
+        # NOVO: Remove o :XX (device ID) se existir
+        # Ex: "558591517149:23" -> "558591517149"
+        if ":" in jid:
+            jid = jid.split(":")[0]
             
         # Remove tudo que não for dígito
         num = re.sub(r"\D", "", jid)
