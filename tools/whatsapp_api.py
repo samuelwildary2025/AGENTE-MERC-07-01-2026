@@ -39,19 +39,27 @@ class WhatsAppAPI:
             return False
         
         url = f"{self.base_url}/message/text"
+        
+        # Limpa o número e formata como JID se necessário
+        clean_num = self._clean_number(to)
+        # Tenta com JID completo (@s.whatsapp.net)
+        jid = f"{clean_num}@s.whatsapp.net"
+        
         payload = {
-            "to": self._clean_number(to),
+            "to": jid,  # Usando JID completo
             "text": text
         }
         
-        logger.info(f"📤 Enviando mensagem para {to}: {text[:50]}...")
-        logger.debug(f"📤 URL: {url} | Payload: {payload}")
+        logger.info(f"📤 Enviando mensagem para {jid}: {text[:50]}...")
+        logger.info(f"📤 URL: {url}")
         
         try:
             resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=10)
             
-            # Log da resposta
+            # Log da resposta COMPLETA
             logger.info(f"📥 Resposta API WhatsApp: Status={resp.status_code}")
+            logger.info(f"📥 Resposta Body: {resp.text[:500]}")
+            
             if resp.status_code != 200:
                 logger.error(f"❌ Erro API WhatsApp ({resp.status_code}): {resp.text[:500]}")
             else:
