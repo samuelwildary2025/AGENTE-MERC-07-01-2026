@@ -674,6 +674,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
         data = _extract_incoming(pl)
         tel, txt, from_me = data["telefone"], data["mensagem_texto"], data["from_me"]
         msg_type = data.get("message_type", "text")
+        msg_id = data.get("message_id")  # ID da mensagem para mark_as_read
 
         # Se for áudio/imagem/doc, o texto pode vir vazio (será preenchido depois na transcrição ou OCR)
         # Então só bloqueamos se for TEXTO e estiver vazio
@@ -714,7 +715,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
 
         active, _ = is_agent_in_cooldown(num)
         if active:
-            push_message_to_buffer(num, txt)
+            push_message_to_buffer(num, txt, message_id=msg_id)
             # SALVAR MENSAGEM DO CLIENTE NO HISTÓRICO mesmo durante cooldown
             try:
                 from langchain_core.messages import HumanMessage
@@ -729,7 +730,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
                 presence_sessions[num] = True
         except: pass
 
-        if push_message_to_buffer(num, txt):
+        if push_message_to_buffer(num, txt, message_id=msg_id):
             if not buffer_sessions.get(num):
                 buffer_sessions[num] = True
                 threading.Thread(target=buffer_loop, args=(num,), daemon=True).start()
