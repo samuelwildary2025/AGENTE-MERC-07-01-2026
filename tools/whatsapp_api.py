@@ -86,24 +86,37 @@ class WhatsAppAPI:
         except Exception:
             return False
 
-    def mark_as_read(self, chat_id: str) -> bool:
+    def mark_as_read(self, chat_id: str, message_ids: list = None) -> bool:
         """
-        Marca a conversa como lida (Tick Azul)
+        Marca mensagens como lidas (Tick Azul)
         POST /message/read
-        Body: { "chatId": "55...@c.us" }
+        Body: { "chatId": "55...@c.us", "messageIds": ["id1", "id2"] }
         """
-        if not self.base_url or not chat_id: return False
+        if not self.base_url or not chat_id: 
+            logger.warning("⚠️ mark_as_read: base_url ou chat_id não configurado")
+            return False
         
         # Garante formatação JID
         jid = chat_id if "@" in chat_id else f"{self._clean_number(chat_id)}@c.us"
         
         url = f"{self.base_url}/message/read"
+        
+        # A API espera messageIds - se não tiver, tenta com chatId apenas
         payload = {"chatId": jid}
+        if message_ids:
+            payload["messageIds"] = message_ids if isinstance(message_ids, list) else [message_ids]
+        
+        logger.debug(f"👀 mark_as_read: URL={url} | Payload={payload}")
         
         try:
             resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=5)
+            if resp.status_code == 200:
+                logger.info(f"✅ Chat {chat_id} marcado como lido")
+            else:
+                logger.warning(f"⚠️ mark_as_read falhou ({resp.status_code}): {resp.text[:200]}")
             return resp.status_code == 200
-        except Exception:
+        except Exception as e:
+            logger.error(f"❌ Erro mark_as_read: {e}")
             return False
 
     def get_media_base64(self, message_id: str) -> Optional[Dict[str, str]]:
