@@ -14,7 +14,6 @@ from config.settings import settings
 from config.logger import setup_logger
 from agent_langgraph_simple import run_agent
 from tools.whatsapp_api import WhatsAppAPI
-from tools.redis_tools import get_session_history
 
 logger = setup_logger(__name__)
 whatsapp = WhatsAppAPI()
