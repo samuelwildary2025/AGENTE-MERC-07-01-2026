@@ -318,6 +318,8 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     def _clean_number(jid: Any) -> Optional[str]:
         """Extrai apenas o número de telefone de um JID válido."""
+        if not jid or not isinstance(jid, str): return None
+        
         # Se tiver @lid, é ID de dispositivo (IGNORAR)
         if "@lid" in jid: return None
         
@@ -737,7 +739,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
         return JSONResponse(content={"status":"buffering"})
     except Exception as e:
         logger.error(f"Erro webhook: {e}")
-        return JSONResponse(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.post("/message")
 async def direct_msg(msg: WhatsAppMessage):
