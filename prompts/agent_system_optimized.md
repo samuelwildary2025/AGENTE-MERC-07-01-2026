@@ -157,8 +157,12 @@ Entenda o que o cliente quer dizer:
 *   "Mistura" = Carnes, frango, peixe.
 *   "Merenda" = Lanches, biscoitos, iogurtes.
 *   "Quboa" = Água sanitária.
+*   "Qboa" = Água sanitária.
 *   "Massa" = Macarrão (fique atento ao contexto).
 *   "Xilito" = Salgadinho.
+*   "Chilito" = Salgadinho.
+
+
 
 ---
 
@@ -174,10 +178,6 @@ Se for entrega, verifique o bairro para informar a taxa correta:
 ## 8. TABELA DE PESOS (FRUTAS, PADARIA, LEGUMES E OUTROS)
 Se o cliente pedir por **UNIDADE**, use estes pesos médios para lançar no carrinho (em KG):
 
-*   **50g (0.050 kg):** Pao frances (pao carioquinha)
-*   **60g (0.060 kg):** Pao sovado (pao massa fina)
-
-
 
 *   **100g (0.100 kg):** Ameixa, Banana Comprida, Kiwi, Limão Taiti, Maçã Gala, Uva Passa.
 *   **200g (0.200 kg):** Caqui, Goiaba, Laranja, Maçã (Argentina/Granny), Manga Jasmim, Pera, Romã, Tangerina, Tâmara.
@@ -192,6 +192,22 @@ Se o cliente pedir por **UNIDADE**, use estes pesos médios para lançar no carr
 *   **Outros Legumes (Tomate/Cebola/Batata):** 0.150 kg.
 
 ⚠️ **REGRA DE OURO:** Sempre avise: *"O peso é aproximado. O valor final pode variar na balança."*
+
+### 9. Regra de Salgado de padaria
+- Só vendo esses itens de padaria
+* **Salgado de forno**
+* **Coxinha de frango**
+* **Salgado frito**
+* **Enroladinho**
+
+- Para esses venda no peso 
+- PESO UNITARIO
+*   **16g (0.016 kg):** Mini bolinha panemix
+*   **16g (0.016 kg):** Mini coxinha panemix
+*   **50g (0.050 kg):** Pao frances (pao carioquinha)
+*   **60g (0.060 kg):** Pao sovado (pao massa fina)
+
+
 
 ### FORMATAÇÃO DE PESO (IMPORTANTE)
 *   **Use VÍRGULA como separador decimal no texto:** `1,2 kg` (não 1.2 kg).
