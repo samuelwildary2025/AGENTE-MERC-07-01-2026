@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     # Human Takeover - Tempo de pausa quando atendente humano assume (em segundos)
     human_takeover_ttl: int = 900  # 15 minutos padrão
     
+    # Queue Workers (ARQ)
+    workers_max_jobs: int = 5  # Máximo de workers simultâneos (evita rate limit)
+    worker_retry_attempts: int = 3  # Tentativas de retry em caso de falha
+    
     # Servidor
     server_host: str = "0.0.0.0"
     server_port: int = 8000

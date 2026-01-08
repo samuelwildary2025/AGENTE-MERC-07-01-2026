@@ -1,4 +1,4 @@
-# Dockerfile for Easypanel
+# Dockerfile for Easypanel - Queue-based Architecture
 FROM python:3.11-slim
 
 # Set working directory
@@ -20,11 +20,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
+# Copy supervisord config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Create directory for logs if configured to file
 RUN mkdir -p logs
 
 # Expose port
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command to run both web and worker via supervisor
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -34,5 +34,9 @@ cohere==4.47
 python-dotenv==1.0.0
 pytz==2024.1
 
+# Queue & Background Tasks
+arq==0.26.0
+supervisor==4.2.5
+
 # Optional: Logging & Monitoring
 python-json-logger==2.0.7

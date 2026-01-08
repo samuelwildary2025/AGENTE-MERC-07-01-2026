@@ -14,6 +14,9 @@ import random
 import threading
 import re
 import io
+import asyncio
+from arq import create_pool
+from arq.connections import RedisSettings
 
 # Tenta importar pypdf para leitura de comprovantes
 try:
@@ -39,7 +42,10 @@ from tools.redis_tools import (
 
 logger = setup_logger(__name__)
 
-app = FastAPI(title="Agente de Supermercado", version="1.6.0") # FORCE UPDATE CHECK
+app = FastAPI(title="Agente de Supermercado", version="1.7.0")  # Queue-based version
+
+# ARQ Queue Pool (inicializado no startup)
+arq_pool = None
 
 # --- Models ---
 class WhatsAppMessage(BaseModel):
@@ -658,9 +664,110 @@ def buffer_loop(tel):
     finally: 
         buffer_sessions.pop(re.sub(r"\D","",tel), None)
 
+# --- ARQ Pool Lifecycle ---
+@app.on_event("startup")
+async def startup_event():
+    """Inicializa pool ARQ no startup"""
+    global arq_pool
+    logger.info("🚀 Inicializando ARQ Pool...")
+    arq_pool = await create_pool(
+        RedisSettings(
+            host=settings.redis_host,
+            port=settings.redis_port,
+            password=settings.redis_password,
+            database=settings.redis_db,
+        )
+    )
+    logger.info("✅ ARQ Pool inicializado com sucesso")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Fecha pool ARQ no shutdown"""
+    global arq_pool
+    if arq_pool:
+        logger.info("🔄 Fechando ARQ Pool...")
+        await arq_pool.close()
+        logger.info("✅ ARQ Pool fechado")
+
+# --- ARQ Enqueue Helpers ---
+async def _enqueue_process_job(telefone: str, mensagem: str, message_id: str = None):
+    """
+    Enfileira job de processamento de mensagem no ARQ.
+    
+    Args:
+        telefone: Número do cliente
+        mensagem: Texto da mensagem
+        message_id: ID da mensagem (opcional)
+    """
+    global arq_pool
+    if not arq_pool:
+        logger.error("❌ ARQ Pool não inicializado! Usando fallback síncrono.")
+        # Fallback: processar síncrono (não ideal mas evita crash)
+        process_async(telefone, mensagem, message_id)
+        return
+    
+    try:
+        job = await arq_pool.enqueue_job(
+            "process_message",  # Nome da função no worker.py
+            telefone,
+            mensagem,
+            message_id,
+        )
+        logger.info(f"🎉 Job enfileirado: {job.job_id} | Cliente: {telefone}")
+    except Exception as e:
+        logger.error(f"❌ Erro ao enfileirar job: {e}")
+        # Fallback para não perder mensagem
+        process_async(telefone, mensagem, message_id)
+
+async def _enqueue_buffer_job(telefone: str):
+    """
+    Aguarda buffer acumular mensagens e depois enfileira job ARQ.
+    Equivalente ao antigo buffer_loop, mas enfileira job em vez de processar diretamente.
+    
+    Args:
+        telefone: Número do cliente (apenas números)
+    """
+    try:
+        n = re.sub(r"\D","",telefone)
+        
+        while True:
+            prev = get_buffer_length(n)
+            if prev == 0:
+                break
+            
+            stall = 0
+            # Esperar por mais mensagens (3 ciclos de 5s)
+            while stall < 3:
+                await asyncio.sleep(5)
+                curr = get_buffer_length(n)
+                if curr > prev: 
+                    prev, stall = curr, 0
+                else: 
+                    stall += 1
+            
+            # Consumir mensagens do buffer
+            msgs, last_mid = pop_all_messages(n)
+            final = " | ".join([m for m in msgs if m.strip()])
+            
+            if not final:
+                break
+            
+            # Obter contexto de sessão
+            order_ctx = get_order_context(n)
+            if order_ctx:
+                final = f"{order_ctx}\n\n{final}"
+            
+            # MUDANÇA: Enfileirar job em vez de processar diretamente
+            await _enqueue_process_job(n, final, last_mid)
+            
+    except Exception as e:
+        logger.error(f"Erro no buffer_loop async: {e}")
+    finally:
+        buffer_sessions.pop(re.sub(r"\D","",telefone), None)
+
 # --- Endpoints ---
 @app.get("/")
-async def root(): return {"status":"online", "ver":"1.6.0"}
+async def root(): return {"status":"online", "ver":"1.7.0", "queue":"enabled"}
 
 @app.get("/health")
 async def health(): return {"status":"healthy", "ts":datetime.now().isoformat()}
@@ -732,9 +839,11 @@ async def webhook(req: Request, tasks: BackgroundTasks):
         if push_message_to_buffer(num, txt, message_id=msg_id):
             if not buffer_sessions.get(num):
                 buffer_sessions[num] = True
-                threading.Thread(target=buffer_loop, args=(num,), daemon=True).start()
+                # MUDANÇA: Em vez de Thread, enfileira job ARQ
+                asyncio.create_task(_enqueue_buffer_job(num))
         else:
-            tasks.add_task(process_async, tel, txt)
+            # Mensagem única (sem buffer) - enfileira diretamente
+            await _enqueue_process_job(tel, txt, msg_id)
 
         return JSONResponse(content={"status":"buffering"})
     except Exception as e:
