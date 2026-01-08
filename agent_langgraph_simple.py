@@ -288,7 +288,13 @@ def _build_llm():
             convert_system_message_to_human=True,  # Necessário para Gemini processar system prompts
         )
     else:
-        logger.info(f"🚀 Usando OpenAI: {model}")
+        # OpenAI: Alguns modelos (gpt-4o-mini, gpt-3.5-turbo, etc) só aceitam temperature=1
+        # Se o modelo termina com "-mini" ou contém "3.5", força temperature=1
+        if "-mini" in model.lower() or "3.5" in model or "gpt-5" in model:
+            logger.warning(f"⚠️ Modelo {model} requer temperature=1 (ajustado automaticamente)")
+            temp = 1.0
+        
+        logger.info(f"🚀 Usando OpenAI: {model} (temp={temp})")
         return ChatOpenAI(
             model=model,
             openai_api_key=settings.openai_api_key,
