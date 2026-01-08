@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     google_api_key: Optional[str] = None
     llm_model: Optional[str] = None
-    llm_temperature: float = 0.1
-    llm_provider: str = "google"
+    llm_temperature: float = 0.1  # Mantido padrão mas pode ser sobrescrito pelo env
+    llm_provider: str = "google"   # Mantido padrão mas pode ser sobrescrito pelo env
     moonshot_api_key: Optional[str] = None
     moonshot_api_url: str = "https://api.moonshot.ai/anthropic"
     
