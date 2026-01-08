@@ -581,7 +581,7 @@ def process_async(tel, msg, mid=None):
         # 2. Marcar como LIDO (Azul) AGORA
         # Usa o telefone (chat_id) E o message_id para marcar como lido
         logger.info(f"👀 Marcando chat {tel} como lido... (mid={mid})")
-        whatsapp.mark_as_read(tel, message_ids=[mid] if mid else None)
+        whatsapp.mark_as_read(tel, message_id=mid)
         time.sleep(0.8) # Delay tático: Garante que o usuário veja o AZUL antes de ver o "Digitando..."
 
         # 3. Começar a "Digitar"

@@ -94,16 +94,20 @@ class WhatsAppAPI:
         except Exception:
             return False
 
-    def mark_as_read(self, chat_id: str, message_ids: list = None) -> bool:
+    def mark_as_read(self, chat_id: str, message_id: str = None) -> bool:
         """
         Marca o chat como lido (Tick Azul)
         POST /message/read
-        Body: { "chatId": "55..." }
+        Body: { "chatId": "55...", "messageId": "ABC123" }
         
-        Nota: A API marca o chat INTEIRO como lido, não precisa de messageIds.
+        Nota: whatsmeow EXIGE messageId para funcionar.
         """
         if not self.base_url or not chat_id: 
             logger.warning("⚠️ mark_as_read: base_url ou chat_id não configurado")
+            return False
+        
+        if not message_id:
+            logger.warning("⚠️ mark_as_read: messageId não fornecido, ignorando")
             return False
         
         # Limpa o número (remove caracteres especiais)
@@ -111,10 +115,13 @@ class WhatsAppAPI:
         
         url = f"{self.base_url}/message/read"
         
-        # API só precisa do chatId - marca o chat inteiro como lido
-        payload = {"chatId": clean_num}
+        # API requer chatId + messageId
+        payload = {
+            "chatId": clean_num,
+            "messageId": message_id
+        }
         
-        logger.info(f"👀 mark_as_read: Payload={payload}")
+        logger.info(f"👀 mark_as_read: {payload}")
         
         try:
             resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=5)
