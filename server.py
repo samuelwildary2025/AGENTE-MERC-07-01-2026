@@ -550,15 +550,9 @@ presence_sessions = {}
 buffer_sessions = {}
 
 def send_presence(num, type_):
-    """Envia status: 'composing' (digitando) ou 'paused'."""
-    # Mapeamento para nova API
-    # Nova API aceita: composing, recording, available, unavailable
-    # paused -> available (ou unavailable, mas available para parar de digitar)
-    status_map = {
-        "composing": "composing",
-        "paused": "available" 
-    }
-    whatsapp.send_presence(num, status_map.get(type_, "available"))
+    """Envia status: 'composing' (digitando) ou 'paused' (para de digitar)."""
+    # A API aceita diretamente: composing, recording, paused, available, unavailable
+    whatsapp.send_presence(num, type_)
 
 def process_async(tel, msg, mid=None):
     """
