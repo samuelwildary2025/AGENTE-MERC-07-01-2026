@@ -142,8 +142,8 @@ class WorkerSettings:
     health_check_interval = 30  # Verifica saúde a cada 30s
     keep_result = 3600  # Mantém resultado por 1h
     
-    # Nome da fila
-    queue_name = "whatsapp_messages"
+    # Nome da fila (Removido para usar o padrão arq:queue e casar com o server.py)
+    # queue_name = "whatsapp_messages"
 
 
 async def main():
