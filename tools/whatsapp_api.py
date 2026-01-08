@@ -96,25 +96,25 @@ class WhatsAppAPI:
 
     def mark_as_read(self, chat_id: str, message_ids: list = None) -> bool:
         """
-        Marca mensagens como lidas (Tick Azul)
+        Marca o chat como lido (Tick Azul)
         POST /message/read
-        Body: { "chatId": "55...@c.us", "messageIds": ["id1", "id2"] }
+        Body: { "chatId": "55..." }
+        
+        Nota: A API marca o chat INTEIRO como lido, não precisa de messageIds.
         """
         if not self.base_url or not chat_id: 
             logger.warning("⚠️ mark_as_read: base_url ou chat_id não configurado")
             return False
         
-        # Garante formatação JID
-        jid = chat_id if "@" in chat_id else f"{self._clean_number(chat_id)}@c.us"
+        # Limpa o número (remove caracteres especiais)
+        clean_num = self._clean_number(chat_id)
         
         url = f"{self.base_url}/message/read"
         
-        # A API espera messageIds - se não tiver, tenta com chatId apenas
-        payload = {"chatId": jid}
-        if message_ids:
-            payload["messageIds"] = message_ids if isinstance(message_ids, list) else [message_ids]
+        # API só precisa do chatId - marca o chat inteiro como lido
+        payload = {"chatId": clean_num}
         
-        logger.debug(f"👀 mark_as_read: URL={url} | Payload={payload}")
+        logger.info(f"👀 mark_as_read: Payload={payload}")
         
         try:
             resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=5)
