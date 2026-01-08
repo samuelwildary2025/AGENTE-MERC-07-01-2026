@@ -318,7 +318,8 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     def _clean_number(jid: Any) -> Optional[str]:
         """Extrai apenas o número de telefone de um JID válido."""
-        if not jid or not isinstance(jid, str): return None
+        # Se tiver @lid, é ID de dispositivo (IGNORAR)
+        if "@lid" in jid: return None
         
         # Se tiver @g.us, é grupo (IGNORAR)
         if "@g.us" in jid: return None
@@ -358,6 +359,9 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     
     # Ordem de prioridade para encontrar o número real
     candidates = []
+    
+    # 0. Resolved Phone (PRIORIDADE MÁXIMA - para casos de LID)
+    candidates.append(payload.get("resolvedPhone"))
     
     # 1. Sender/ChatID (Geralmente o mais preciso: 5585...@s.whatsapp.net)
     if isinstance(message_any, dict):
