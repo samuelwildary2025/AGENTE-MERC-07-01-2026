@@ -346,13 +346,15 @@ def run_agent_langgraph(telefone: str, mensagem: str) -> Dict[str, Any]:
         agent = get_agent_graph()
         
         # 3. Construir mensagem (Texto Simples ou Multimodal)
-        # IMPORTANTE: Injetar telefone no contexto para que o LLM saiba qual usar nas tools
-        telefone_context = f"[TELEFONE_CLIENTE: {telefone}]\n\n"
+        # IMPORTANTE: Injetar telefone e horário no contexto para que o LLM saiba qual usar
+        from tools.time_tool import get_current_time
+        hora_atual = get_current_time()
+        contexto = f"[TELEFONE_CLIENTE: {telefone}]\n[HORÁRIO_ATUAL: {hora_atual}]\n\n"
         
         if image_url:
             # Formato multimodal para GPT-4o / GPT-4o-mini
             message_content = [
-                {"type": "text", "text": telefone_context + clean_message},
+                {"type": "text", "text": contexto + clean_message},
                 {
                     "type": "image_url",
                     "image_url": {"url": image_url}
@@ -360,7 +362,7 @@ def run_agent_langgraph(telefone: str, mensagem: str) -> Dict[str, Any]:
             ]
             initial_message = HumanMessage(content=message_content)
         else:
-            initial_message = HumanMessage(content=telefone_context + clean_message)
+            initial_message = HumanMessage(content=contexto + clean_message)
 
         initial_state = {"messages": [initial_message]}
         config = {"configurable": {"thread_id": telefone}, "recursion_limit": 100}
