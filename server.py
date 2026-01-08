@@ -320,17 +320,15 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         """Extrai apenas o número de telefone de um JID válido."""
         if not jid or not isinstance(jid, str): return None
         
-        # Se tiver @lid, é ID de dispositivo (IGNORAR)
-        if "@lid" in jid: return None
-        
         # Se tiver @g.us, é grupo (IGNORAR)
         if "@g.us" in jid: return None
         
         # Pega a parte antes do @
+        # Funciona para: @s.whatsapp.net, @c.us, @lid
         if "@" in jid:
             jid = jid.split("@")[0]
         
-        # NOVO: Remove o :XX (device ID) se existir
+        # Remove o :XX (device ID) se existir
         # Ex: "558591517149:23" -> "558591517149"
         if ":" in jid:
             jid = jid.split(":")[0]
@@ -339,7 +337,8 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         num = re.sub(r"\D", "", jid)
         
         # Validação básica (evita IDs estranhos)
-        if len(num) > 15 or len(num) < 10:
+        # Aumentado limite superior para números internacionais
+        if len(num) > 20 or len(num) < 8:
             return None
             
         return num
