@@ -294,6 +294,65 @@ def analyze_image_uaz(message_id: Optional[str], url: Optional[str]) -> Optional
             except Exception:
                 pass
 
+def _analyze_image_from_base64(base64_data: str, mimetype: str = None) -> Optional[str]:
+    """Analisa imagem diretamente do Base64 (sem precisar baixar via API)."""
+    if not settings.google_api_key or not base64_data:
+        return None
+    
+    file_path = None
+    try:
+        from google import genai
+        import tempfile
+        import os as os_module
+        import base64
+        
+        # Decodificar Base64
+        image_bytes = base64.b64decode(base64_data)
+        mime_type_clean = (mimetype or "image/jpeg").split(";")[0].strip()
+        
+        ext_map = {
+            "image/jpeg": ".jpg",
+            "image/jpg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        }
+        ext = ext_map.get(mime_type_clean.lower(), ".jpg")
+        
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(image_bytes)
+            file_path = tmp.name
+        
+        client = genai.Client(api_key=settings.google_api_key)
+        image_file = client.files.upload(file=file_path, config={"mime_type": mime_type_clean})
+        
+        prompt = (
+            "Analise cuidadosamente esta imagem e identifique o produto (se for um produto). "
+            "Retorne um texto curto em português com: nome do produto, marca, versão/sabor/variante, "
+            "tamanho/peso/volume e qualquer detalhe útil visível. "
+            "Se não for um produto (ex.: foto borrada, pessoa, conversa), diga apenas: 'Imagem não identificada'. "
+            "Não invente detalhes; só use o que estiver visível."
+        )
+        
+        model = settings.llm_model or "gemini-2.0-flash-lite"
+        response = client.models.generate_content(model=model, contents=[prompt, image_file])
+        txt = (response.text or "").strip()
+        
+        if txt:
+            logger.info(f"✅ Imagem analisada via Base64: {txt[:50]}...")
+            return txt[:800]
+        return None
+        
+    except Exception as e:
+        logger.error(f"Erro ao analisar imagem Base64: {e}")
+        return None
+    finally:
+        if file_path:
+            try:
+                import os as os_module
+                os_module.unlink(file_path)
+            except:
+                pass
+
 def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normaliza e processa (Texto, Áudio, Imagem, Documento/PDF).
@@ -419,10 +478,25 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     msg_keys = list(payload.keys())
     media_url = payload.get("mediaUrl") or payload.get("url")
     
+    # NOVO: Capturar mediaBase64 diretamente do webhook (mais eficiente que download)
+    media_base64 = payload.get("mediaBase64")
+    media_mimetype = payload.get("mimetype")
+    media_caption = payload.get("caption")
+    
+    # Se tem mediaBase64, já sabemos que é mídia
+    if media_base64:
+        if media_mimetype and "audio" in media_mimetype:
+            msg_type = "audio"
+        elif media_mimetype and "pdf" in media_mimetype:
+            msg_type = "document"
+        else:
+            msg_type = "image"
+        # Usar caption como texto se existir
+        if media_caption:
+            mensagem_texto = media_caption
     # Se não achou tipo explícito, tenta deduzir de chaves aninhadas common
-    if any(k in msg_keys for k in ["imageMessage", "videoMessage", "viewOnceMessage", "image"]):
+    elif any(k in msg_keys for k in ["imageMessage", "videoMessage", "viewOnceMessage", "image"]):
         msg_type = "image"
-        # Tenta pegar caption de dentro se existir
         sub = payload.get("imageMessage") or payload.get("image") or payload.get("viewOnceMessage")
         if isinstance(sub, dict):
             mensagem_texto = mensagem_texto or sub.get("caption") or sub.get("text")
@@ -492,15 +566,26 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
             
     elif message_type == "image":
         caption = mensagem_texto or ""
-        url = media_url or get_media_url_uaz(message_id)
-        analysis = analyze_image_uaz(message_id, url)
+        analysis = None
+        
+        # NOVO: Tentar usar mediaBase64 direto (mais eficiente)
+        if media_base64:
+            try:
+                logger.info(f"📷 Analisando imagem via Base64 direto...")
+                analysis = _analyze_image_from_base64(media_base64, media_mimetype)
+            except Exception as e:
+                logger.error(f"Erro ao analisar imagem Base64: {e}")
+        
+        # Fallback: usar API de download
+        if not analysis:
+            url = media_url or get_media_url_uaz(message_id)
+            analysis = analyze_image_uaz(message_id, url)
+        
         if analysis:
             base = caption.strip()
             mensagem_texto = f"{base}\n[Análise da imagem]: {analysis}".strip() if base else f"[Análise da imagem]: {analysis}"
         else:
             mensagem_texto = caption.strip() if caption else "[Imagem recebida]"
-        if url:
-            mensagem_texto = f"{mensagem_texto} [MEDIA_URL: {url}]".strip()
 
     elif message_type == "document":
         url = media_url or get_media_url_uaz(message_id)
@@ -522,6 +607,8 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         "message_id": message_id,
         "from_me": from_me,
         "media_url": media_url,
+        "media_base64": media_base64,
+        "media_mimetype": media_mimetype,
     }
 
 def send_whatsapp_message(telefone: str, mensagem: str) -> bool:
