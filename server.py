@@ -412,21 +412,20 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     from_me = bool(payload.get("fromMe") or False)
     
     # Determinar tipo
-    msg_type = payload.get("type") or "chat"
-    media_url = payload.get("mediaUrl")
+    msg_type = str(payload.get("type") or payload.get("messageType") or "chat").lower()
+    media_url = payload.get("mediaUrl") or payload.get("url")
     
     message_type = "text"
-    if msg_type == "ptt" or msg_type == "audio":
+    if msg_type in ["ptt", "audio"] or "audio" in msg_type:
         message_type = "audio"
-    elif msg_type == "image" or (media_url and "jpg" in str(media_url)):
+    elif msg_type in ["image", "video"] or "image" in msg_type or (media_url and any(ext in str(media_url).lower() for ext in [".jpg", ".jpeg", ".png", ".webp"])):
         message_type = "image"
-    elif msg_type == "document" or (media_url and "pdf" in str(media_url)):
+    elif msg_type == "document" or "document" in msg_type or (media_url and ".pdf" in str(media_url).lower()):
         message_type = "document"
 
     # Se for mídia, tenta pegar a URL direto do payload se vier
     if message_type in ["image", "audio", "document"] and media_url:
-        # Na nova API, a URL já vem no payload, não precisa baixar via ID às vezes
-        # Mas mantemos a lógica de ID se precisar
+        # Na nova API, a URL já vem no payload
         pass
 
     # Lógica legada para garantir compatibilidade com estruturas antigas
@@ -783,8 +782,8 @@ async def webhook(req: Request, tasks: BackgroundTasks):
         msg_id = data.get("message_id")  # ID da mensagem para mark_as_read
 
         # Se for áudio/imagem/doc, o texto pode vir vazio (será preenchido depois na transcrição ou OCR)
-        # Então só bloqueamos se for TEXTO e estiver vazio
-        if not tel or (not txt and msg_type == "text"): 
+        # Só bloqueamos se não houver telefone, OU se for texto puro sem conteúdo e sem mídia
+        if not tel or (not txt and msg_type == "text" and not media_url): 
             logger.warning(f"⚠️ IGNORED | Tel: {tel} | Txt: {txt} | Type: {msg_type} | PayloadKeys: {list(pl.keys())}")
             # DUMP DE DEBUG
             try:
