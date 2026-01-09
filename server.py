@@ -819,6 +819,11 @@ async def webhook(req: Request, tasks: BackgroundTasks):
             logger.warning(f"⚠️ IGNORED | Tel: {tel} | Txt: {txt} | Type: {msg_type} | ID: {msg_id}")
             return JSONResponse(content={"status":"ignored"})
         
+        # Se for mídia sem texto, cria um placeholder para não perder no buffer
+        if msg_type in ["image", "audio", "document"] and not txt and msg_id:
+            txt = f"[MEDIA:{msg_type.upper()}:{msg_id}]"
+            logger.info(f"📎 Placeholder de mídia criado: {txt}")
+        
         logger.info(f"In: {tel} | {msg_type} | {txt[:50] if txt else '[Mídia]'}")
 
         if from_me:

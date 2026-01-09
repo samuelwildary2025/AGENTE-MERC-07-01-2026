@@ -51,6 +51,45 @@ async def process_message(ctx: Dict[str, Any], telefone: str, mensagem: str, mes
         # 3. Começar a "Digitar"
         whatsapp.send_presence(num, "composing")
         
+        # 3.5 Processar mídia se for placeholder ([MEDIA:TYPE:ID])
+        if mensagem.startswith("[MEDIA:"):
+            try:
+                # Parse: [MEDIA:IMAGE:3EB08C4C6042...]
+                parts = mensagem.strip("[]").split(":")
+                media_type = parts[1].lower() if len(parts) > 1 else "image"
+                media_id = parts[2] if len(parts) > 2 else None
+                
+                if media_id:
+                    logger.info(f"📷 Processando mídia {media_type}: {media_id}")
+                    
+                    if media_type == "image":
+                        # Importar função de análise do server.py
+                        from server import analyze_image_uaz
+                        analysis = analyze_image_uaz(media_id, None)
+                        if analysis:
+                            mensagem = f"[Análise da imagem]: {analysis}"
+                            logger.info(f"✅ Imagem analisada: {analysis[:50]}...")
+                        else:
+                            mensagem = "[Imagem recebida, mas não foi possível analisar]"
+                    elif media_type == "audio":
+                        from server import transcribe_audio_uaz
+                        transcription = transcribe_audio_uaz(media_id)
+                        if transcription:
+                            mensagem = f"[Áudio]: {transcription}"
+                            logger.info(f"✅ Áudio transcrito: {transcription[:50]}...")
+                        else:
+                            mensagem = "[Áudio recebido, mas não foi possível transcrever]"
+                    elif media_type == "document":
+                        from server import process_pdf_uaz
+                        pdf_text = process_pdf_uaz(media_id)
+                        if pdf_text:
+                            mensagem = f"[Conteúdo PDF]: {pdf_text[:1200]}"
+                        else:
+                            mensagem = "[Documento/PDF recebido]"
+            except Exception as e:
+                logger.error(f"❌ Erro ao processar mídia: {e}")
+                mensagem = "[Mídia recebida, erro ao processar]"
+        
         # 4. Processamento IA (síncrono - run_agent não é async)
         # Rodamos em thread_pool para não bloquear o event loop
         loop = asyncio.get_event_loop()
