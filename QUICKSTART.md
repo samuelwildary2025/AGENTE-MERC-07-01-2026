@@ -216,7 +216,7 @@ OPENAI_API_KEY=sk-proj-...
 Agora que o agente está funcionando:
 
 1. **Configure a Base de Conhecimento** (Supabase + Cohere) para respostas mais inteligentes
-2. **Integre com WhatsApp** usando a UAZ API
+2. **Integre com WhatsApp** usando a WhatsApp API própria
 3. **Configure a API do Supermercado** para consultas reais de estoque
 4. **Personalize o Prompt** do agente em `agent.py`
 5. **Adicione novas ferramentas** conforme necessário

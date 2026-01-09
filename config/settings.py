@@ -57,10 +57,9 @@ class Settings(BaseSettings):
     whatsapp_api_base_url: str = "https://sistema-whatsapp-api.5mos1l.easypanel.host"
     whatsapp_instance_token: Optional[str] = None  # Header: X-Instance-Token
     
-    # WhatsApp / UAZ API (Legado/Compatibilidade)
-    whatsapp_api_url: Optional[str] = None 
-    uaz_api_url: Optional[str] = None
-    whatsapp_token: Optional[str] = None
+    # WhatsApp (Legado - apenas para compatibilidade com .env antigos)
+    whatsapp_api_url: Optional[str] = None  # Deprecated: use whatsapp_api_base_url
+    whatsapp_token: Optional[str] = None    # Deprecated: use whatsapp_instance_token
     whatsapp_method: str = "POST"
     whatsapp_agent_number: str | None = None
     

@@ -64,54 +64,35 @@ class AgentResponse(BaseModel):
 
 # --- Helpers ---
 
-def get_api_base_url() -> str:
-    """Prioriza UAZ_API_URL > WHATSAPP_API_URL."""
-    return (settings.uaz_api_url or settings.whatsapp_api_url or "").strip().rstrip("/")
-
-def get_media_url_uaz(message_id: str) -> Optional[str]:
-    """Solicita link público da mídia (Imagem/PDF)."""
-    if not message_id: return None
-    base = get_api_base_url()
-    if not base: return None
-
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(base)
-        url = f"{parsed.scheme}://{parsed.netloc}/message/download"
-    except:
-        url = f"{base.split('/message')[0]}/message/download"
-
-    headers = {"Content-Type": "application/json", "token": (settings.whatsapp_token or "").strip()}
-    # return_link=True devolve url pública
-    payload = {"id": message_id, "return_link": True, "return_base64": False}
-    
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            link = data.get("fileURL") or data.get("url")
-            if link: return link
-    except Exception as e:
-        logger.error(f"Erro ao obter link mídia: {e}")
-    return None
-
-def process_pdf_uaz(message_id: str) -> Optional[str]:
-    """Baixa o PDF e extrai o texto (para leitura do valor)."""
+def process_pdf(message_id: str) -> Optional[str]:
+    """
+    Baixa o PDF via nova API e extrai o texto.
+    Usa whatsapp.get_media_base64() para obter o conteúdo.
+    """
     if not PdfReader:
         logger.error("❌ Biblioteca pypdf não instalada. Adicione ao requirements.txt")
         return "[Erro: sistema não suporta leitura de PDF]"
 
-    url = get_media_url_uaz(message_id)
-    if not url: return None
+    if not message_id:
+        return None
     
-    logger.info(f"📄 Processando PDF: {url}")
+    logger.info(f"📄 Processando PDF: {message_id}")
+    
     try:
-        # Baixar o arquivo
-        response = requests.get(url, timeout=20)
-        response.raise_for_status()
+        import base64
+        
+        # Obter PDF via nova API (Base64)
+        media_data = whatsapp.get_media_base64(message_id)
+        
+        if not media_data or not media_data.get("base64"):
+            logger.error(f"❌ Falha ao obter PDF: {message_id}")
+            return None
+        
+        # Decodificar Base64
+        pdf_bytes = base64.b64decode(media_data["base64"])
         
         # Ler PDF em memória
-        f = io.BytesIO(response.content)
+        f = io.BytesIO(pdf_bytes)
         reader = PdfReader(f)
         
         text_content = []
@@ -128,7 +109,7 @@ def process_pdf_uaz(message_id: str) -> Optional[str]:
         logger.error(f"Erro ao ler PDF: {e}")
         return None
 
-def transcribe_audio_uaz(message_id: str) -> Optional[str]:
+def transcribe_audio(message_id: str) -> Optional[str]:
     """
     Transcreve áudio usando Google Gemini.
     Baixa o áudio em Base64 via API, salva em disco e envia para Gemini.
@@ -216,7 +197,7 @@ def transcribe_audio_uaz(message_id: str) -> Optional[str]:
         logger.error(f"Erro transcrição Gemini: {e}")
         return None
 
-def analyze_image_uaz(message_id: Optional[str], url: Optional[str]) -> Optional[str]:
+def analyze_image(message_id: Optional[str], url: Optional[str] = None) -> Optional[str]:
     if not settings.google_api_key:
         return None
 
@@ -559,7 +540,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     if message_type == "audio" and not mensagem_texto:
         if message_id:
             # Usa a nova função que suporta Base64
-            trans = transcribe_audio_uaz(message_id)
+            trans = transcribe_audio(message_id)
             mensagem_texto = f"[Áudio]: {trans}" if trans else "[Áudio inaudível]"
         else:
             mensagem_texto = "[Áudio sem ID]"
@@ -576,10 +557,9 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
             except Exception as e:
                 logger.error(f"Erro ao analisar imagem Base64: {e}")
         
-        # Fallback: usar API de download
+        # Fallback: usar API de download (via Base64)
         if not analysis:
-            url = media_url or get_media_url_uaz(message_id)
-            analysis = analyze_image_uaz(message_id, url)
+            analysis = analyze_image(message_id, media_url)
         
         if analysis:
             base = caption.strip()
@@ -588,17 +568,16 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
             mensagem_texto = caption.strip() if caption else "[Imagem recebida]"
 
     elif message_type == "document":
-        url = media_url or get_media_url_uaz(message_id)
         pdf_text = ""
         if message_id:
-            extracted = process_pdf_uaz(message_id)
+            extracted = process_pdf(message_id)
             if extracted:
                 pdf_text = f"\n[Conteúdo PDF]: {extracted[:1200]}..."
         
-        if url:
-            mensagem_texto = f"Comprovante/PDF Recebido. {pdf_text} [MEDIA_URL: {url}]"
+        if pdf_text:
+            mensagem_texto = f"Comprovante/PDF Recebido. {pdf_text}"
         else:
-            mensagem_texto = f"[PDF sem link] {pdf_text}"
+            mensagem_texto = "[PDF recebido, não foi possível extrair texto]"
 
     return {
         "telefone": telefone,

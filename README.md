@@ -105,7 +105,7 @@ Este projeto implementa um agente de conversação inteligente usando **LangChai
 - **Supabase** - Para vector store (base de conhecimento)
 - **Cohere** - Para reranking de documentos
 - **API do Supermercado** - Sistema de gestão de produtos/pedidos
-- **UAZ API** - Para integração com WhatsApp
+- **WhatsApp API** - API própria para integração com WhatsApp
 
 ## 🚀 Instalação
 
@@ -174,9 +174,9 @@ REDIS_DB=0
 SUPERMERCADO_BASE_URL=https://wildhub-wildhub-sistema-supermercado.5mos1l.easypanel.host/api
 SUPERMERCADO_AUTH_TOKEN=Bearer seu_token_aqui
 
-# WhatsApp API
-WHATSAPP_API_URL=https://wildhub.uazapi.com
-WHATSAPP_TOKEN=seu_token_whatsapp
+# WhatsApp API (Nova Integração)
+WHATSAPP_API_BASE_URL=https://sistema-whatsapp-api.5mos1l.easypanel.host
+WHATSAPP_INSTANCE_TOKEN=seu_token_da_instancia
 
 # Servidor
 SERVER_HOST=0.0.0.0

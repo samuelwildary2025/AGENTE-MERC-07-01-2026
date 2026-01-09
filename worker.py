@@ -64,24 +64,24 @@ async def process_message(ctx: Dict[str, Any], telefone: str, mensagem: str, mes
                     
                     if media_type == "image":
                         # Importar função de análise do server.py
-                        from server import analyze_image_uaz
-                        analysis = analyze_image_uaz(media_id, None)
+                        from server import analyze_image
+                        analysis = analyze_image(media_id, None)
                         if analysis:
                             mensagem = f"[Análise da imagem]: {analysis}"
                             logger.info(f"✅ Imagem analisada: {analysis[:50]}...")
                         else:
                             mensagem = "[Imagem recebida, mas não foi possível analisar]"
                     elif media_type == "audio":
-                        from server import transcribe_audio_uaz
-                        transcription = transcribe_audio_uaz(media_id)
+                        from server import transcribe_audio
+                        transcription = transcribe_audio(media_id)
                         if transcription:
                             mensagem = f"[Áudio]: {transcription}"
                             logger.info(f"✅ Áudio transcrito: {transcription[:50]}...")
                         else:
                             mensagem = "[Áudio recebido, mas não foi possível transcrever]"
                     elif media_type == "document":
-                        from server import process_pdf_uaz
-                        pdf_text = process_pdf_uaz(media_id)
+                        from server import process_pdf
+                        pdf_text = process_pdf(media_id)
                         if pdf_text:
                             mensagem = f"[Conteúdo PDF]: {pdf_text[:1200]}"
                         else:
