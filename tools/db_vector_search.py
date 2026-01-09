@@ -106,12 +106,28 @@ def search_products_vector(query: str, limit: int = 20) -> str:
         "creme crack": "bolacha cream cracker",
         "cream crack": "bolacha cream cracker",
         "cracker": "bolacha cream cracker",
-        # Refrigerantes
+        # Refrigerantes - MELHORADO
         "guarana": "refrig guarana antarctica",
-        "coca cola": "refrig coca cola",
-        "coca-cola": "refrig coca cola",
+        "coca cola": "refrig coca cola pet",
+        "coca-cola": "refrig coca cola pet",
+        "coca cola 2 litros": "refrig coca cola pet 2l",
+        "coca-cola 2 litros": "refrig coca cola pet 2l",
+        "coca cola 2l": "refrig coca cola pet 2l",
+        "coca-cola 2l": "refrig coca cola pet 2l",
         "fanta": "refrig fanta",
         "sprite": "refrig sprite",
+        # Padaria - NOVO
+        "carioquinha": "pao frances",
+        "carioquinhas": "pao frances",
+        "pao carioquinha": "pao frances",
+        "pão carioquinha": "pao frances",
+        "pão francês": "pao frances",
+        "pao frances": "pao frances",
+        # Carnes e hambúrguer - NOVO
+        "hamburguer": "hamburguer carne",
+        "hamburger": "hamburguer carne",
+        "carne de hamburguer": "hamburguer carne moida",
+        "carne hamburguer": "hamburguer carne moida",
         # Normalização de acentos (banco usa sem acento)
         "açúcar": "acucar cristal",
         "açucar": "acucar cristal",
