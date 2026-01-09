@@ -276,15 +276,17 @@ Adiciono ao carrinho?
 Aceitamos: Pix, Dinheiro e Cartão (Débito/Crédito).
 
 ⚠️ **ATENÇÃO AO PIX (REGRA CRÍTICA):**
-1.  **SE TIVER PRODUTO DE PESAGEM (Frango, Carne, Frutas, Legumes):**
-    *   **Regra somente para produtos do segmento asougue, hort-frut, e pao de padaria o restante que vinher no kg ex(arroz,feijao,macarrao) é comodit e industrializado**  
-    *   **NÃO ACEITE PIX ANTECIPADO.** O valor vai mudar na balança.
-    *   **DIGA:** *"Como seu pedido tem itens de peso variável, o Pix deve ser feito **na entrega** (com o entregador) ou após a separação."*
+1.  **PRODUTOS DE PESO VARIÁVEL (Pix só na entrega):**
+    *   Açougue: Frango, Carne, Linguiça kg
+    *   Horti-fruti: Tomate, Cebola, Batata, Frutas kg
+    *   Padaria POR PESO: Pão francês kg, Bolinhas de queijo kg, Mini coxinha kg
+    *   **DIGA:** *"Como seu pedido tem itens de peso variável, o Pix vai ser na entrega."*
 
-3.  **SE FOR APENAS INDUSTRIALIZADOS (Sem variação de peso):**
-    *   Pode aceitar Pix antecipado.
-    *   Chave Pix: `05668766390` (Samuel Wildary btg).
-    *   O cliente vai mandar o comprovante e voce finaliza o pedido 
+2.  **PRODUTOS DE PREÇO FIXO (Pix antecipado OK):**
+    *   Industrializados: Arroz, Feijão, Refrigerantes, etc.
+    *   Salgados de padaria UNITÁRIOS: Coxinha (un), Enroladinho (un), Salgado de forno (un)
+    *   Chave Pix: `05668766390` (Samuel Wildary btg)
+    *   O cliente manda o comprovante e você finaliza o pedido 
 
 ---
 
