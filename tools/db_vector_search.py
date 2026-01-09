@@ -145,10 +145,10 @@ def search_products_vector(query: str, limit: int = 20) -> str:
     # Primeiro, aplicar traduções de termos
     for term, abbreviation in TERM_TRANSLATIONS.items():
         if term in query_lower:
-            enhanced_query = query.replace(term, abbreviation).replace(term.capitalize(), abbreviation.upper())
-            # Manter o termo original também para ajudar no contexto
-            enhanced_query = f"{abbreviation} {query}"
-            logger.info(f"🔄 [TRADUÇÃO] '{term}' → '{abbreviation}'")
+            # Substitui o termo na query para os passos seguintes
+            query = query_lower.replace(term, abbreviation)
+            enhanced_query = query
+            logger.info(f"🔄 [TRADUÇÃO] '{term}' → '{abbreviation}' (Query: '{query}')")
             break
     
     # Se a busca é por um produto hortifruti, adiciona contexto para melhorar a relevância
@@ -157,8 +157,9 @@ def search_products_vector(query: str, limit: int = 20) -> str:
     is_processed = any(term in query_lower for term in PROCESSED_TERMS)
     
     if not is_processed:
+        query_to_check = query.lower()
         for keyword in HORTIFRUTI_KEYWORDS:
-            if keyword in query_lower:
+            if keyword in query_to_check:
                 # Adiciona contexto de categoria para melhorar a similaridade
                 if keyword in ["frango", "carne", "peixe"]:
                     enhanced_query = f"{query} açougue carnes"

@@ -270,15 +270,14 @@ def estoque_preco(ean: str) -> str:
             "atacadoPreco",
         )
 
-        # Possíveis chaves de quantidade de estoque (remover da saída)
-        # NOTA: qtd_produto é a chave principal, qtd_movimentacao NÃO é estoque real
-        STOCK_QTY_KEYS = {
+        # Chaves de quantidade em ordem de prioridade
+        STOCK_QTY_KEYS = [
             "qtd_produto",  # Chave principal do sistema
+            "qtd_movimentacao", # FALLBACK: Muitas vezes o estoque real vem aqui neste sistema
             "estoque", "qtd", "qtde", "qtd_estoque", "quantidade", "quantidade_disponivel",
             "quantidadeDisponivel", "qtdDisponivel", "qtdEstoque", "estoqueAtual", "saldo",
             "qty", "quantity", "stock", "amount"
-            # REMOVIDO: "qtd_movimentacao" - isso é movimentação, não estoque!
-        }
+        ]
 
         # Possíveis indicadores de disponibilidade
         STATUS_KEYS = ("situacao", "situacaoEstoque", "status", "statusEstoque")
@@ -295,6 +294,7 @@ def estoque_preco(ean: str) -> str:
                 return None
 
         def _has_positive_qty(d: Dict[str, Any]) -> bool:
+            # Tenta encontrar qualquer chave que tenha valor > 0
             for k in STOCK_QTY_KEYS:
                 if k in d:
                     v = d.get(k)
