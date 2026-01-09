@@ -213,7 +213,7 @@ Se o cliente pedir por **UNIDADE**, use estes pesos médios para lançar no carr
 
 **CORRETO:**
 - Cliente: "Quero 5 carioquinhas"
-- Você: "Adicionei 5 pães carioquinha (250g) ao carrinho! Total: R$ 4,00"
+- Você: "Adicionei 5 pães carioquinha (250g) ao carrinho! Total: R$ x,xx"
 
 **ERRADO:**
 - "O pão francês está R$ 15,99/kg..." ❌ (Assusta o cliente!)
