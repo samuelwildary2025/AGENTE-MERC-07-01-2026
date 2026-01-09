@@ -448,6 +448,13 @@ def busca_lote_produtos(produtos: list[str]) -> str:
         "mini coxinha": ("816", "MINI COXINHA PANNEMIX FRANGO kg"),
         "enroladinho": ("827", "ENROLADINHO SALSICHA"),
         "enroladinho de salsicha": ("827", "ENROLADINHO SALSICHA"),
+        # Feijão e Café (Garantindo básicos)
+        "feijao": ("7898933603084", "FEIJAO CARIOCA YAN 1kg"),
+        "feijão": ("7898933603084", "FEIJAO CARIOCA YAN 1kg"),
+        "feijao carioca": ("7898933603084", "FEIJAO CARIOCA YAN 1kg"),
+        "feijao de corda": ("7896406001009", "FEIJAO CORDA KI-CALDO 1kg"),
+        "cafe": ("7898286200374", "CAFE PURO 250g"),
+        "café": ("7898286200374", "CAFE PURO 250g"),
         # Refrigerantes
         "coca-cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
         "coca-cola 2 litros": ("7894900027013", "REFRIG COCA COLA PET 2L"),
@@ -551,11 +558,21 @@ def busca_lote_produtos(produtos: list[str]) -> str:
                 # 3. Bonus por Preferências
                 for i, termo in enumerate(termos_preferidos):
                     if termo in nome_lower:
-                        score += (10 - i)
+                        score += (20 - i)  # Bônus maior (20 em vez de 10)
                         break
                 
-                # 4. Penalidade por tamanho
-                score -= len(nome_lower) * 0.05
+                # 4. Penalidades para termos que o cliente geralmente não quer por padrão (se a busca for genérica)
+                # Se o usuário NÃO digitou "descaf", mas o produto é descaf, penaliza.
+                PALAVRAS_EVITAR = ["descaf", "soluvel", "desnatado"]
+                if "feijao" in produto_lower:
+                    PALAVRAS_EVITAR.extend(["branco", "preto", "fradinho"])
+                
+                for palavra in PALAVRAS_EVITAR:
+                    if palavra in nome_lower and palavra not in produto_lower:
+                        score -= 15  # Penalidade forte para não sugerir descaf/branco por engano
+                
+                # 5. Penalidade por tamanho (manter baixa para não matar nomes descritivos)
+                score -= len(nome_lower) * 0.02
                 
                 candidatos_pontuados.append((score, c))
             

@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     whatsapp_api_url: Optional[str] = None  # Deprecated: use whatsapp_api_base_url
     whatsapp_token: Optional[str] = None    # Deprecated: use whatsapp_instance_token
     whatsapp_method: str = "POST"
-    whatsapp_agent_number: str | None = None
+    whatsapp_agent_number: Optional[str] = None
     
     # Human Takeover - Tempo de pausa quando atendente humano assume (em segundos)
     human_takeover_ttl: int = 900  # 15 minutos padrão
@@ -79,7 +79,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/agente.log"
     
-    agent_prompt_path: str | None = "prompts/agent_system_optimized.md"
+    agent_prompt_path: Optional[str] = "prompts/agent_system_optimized.md"
 
 
 # Instância global de configurações
