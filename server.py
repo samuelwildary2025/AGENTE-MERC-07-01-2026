@@ -796,22 +796,27 @@ async def health(): return {"status":"healthy", "ts":datetime.now().isoformat()}
 async def webhook(req: Request, tasks: BackgroundTasks):
     try:
         pl = await req.json()
+        
+        # Log bruto para capturar segredos do payload
+        logger.info(f"📥 RAW: {pl.get('event', '?')} | Keys: {list(pl.keys())} | DataKeys: {list(pl.get('data', {}).keys()) if isinstance(pl.get('data'), dict) else '?'}")
+        
         data = _extract_incoming(pl)
         tel, txt, from_me = data["telefone"], data["mensagem_texto"], data["from_me"]
-        msg_type = data.get("message_type", "text")
+        msg_type = data.get("message_type") or data.get("message_any", {}).get("type", "text")
         msg_id = data.get("message_id")  # ID da mensagem para mark_as_read
         media_url = data.get("media_url")
 
-        # Se for áudio/imagem/doc, o texto pode vir vazio (será preenchido depois na transcrição ou OCR)
-        # Só bloqueamos se não houver telefone, OU se for texto puro sem conteúdo e sem mídia
+        # Fallback: Se o tipo vier como 'text' mas o corpo estiver vazio, pode ser uma mídia sem legenda
+        # que o bridge não classificou direito. Vamos tentar tratar como imagem.
+        if msg_type == "text" and not txt and msg_id:
+            logger.info(f"🕵️ Detectada possível mídia sem tipo em {msg_id}. Tentando conversão...")
+            data["message_type"] = "image"
+            msg_type = "image"
+            # O processamento abaixo cuidará de chamar o download via ID
+
+        # Só bloqueamos se não houver telefone, OU se for texto puro sem conteúdo e sem mídia/ID
         if not tel or (not txt and msg_type == "text" and not media_url): 
-            logger.warning(f"⚠️ IGNORED | Tel: {tel} | Txt: {txt} | Type: {msg_type} | PayloadKeys: {list(pl.keys())}")
-            # DUMP DE DEBUG
-            try:
-                import json
-                logger.warning(f"🐛 PAYLOAD DUMP: {json.dumps(pl, default=str)[:2000]}")
-            except: pass
-            
+            logger.warning(f"⚠️ IGNORED | Tel: {tel} | Txt: {txt} | Type: {msg_type} | ID: {msg_id}")
             return JSONResponse(content={"status":"ignored"})
         
         logger.info(f"In: {tel} | {msg_type} | {txt[:50] if txt else '[Mídia]'}")
