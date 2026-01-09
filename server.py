@@ -315,12 +315,15 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # ADAPTAÇÃO: Se o payload tiver uma chave 'message' (payload aninhado extra)
     # Ex: { "event": "message", "data": { "instanceId": "...", "message": { ... } } }
+    # Mantemos o payload original para buscar metadados (como resolvedPhone)
+    original_data = payload.copy()
     if "message" in payload and isinstance(payload["message"], dict):
-        # PROMOÇÃO DIRETA: Se existe 'message', usamos ela como payload principal
         payload = payload["message"]
         try:
              logger.info(f"🔍 DEBUG EXTRACT PROMOTED MESSAGE: Keys={list(payload.keys())}")
         except: pass
+    else:
+        original_data = {} # Não precisa se não houve promoção
 
     def _clean_number(jid: Any) -> Optional[str]:
         """Extrai apenas o número de telefone de um JID válido."""
@@ -369,6 +372,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     candidates = []
     
     # 0. Resolved Phone (PRIORIDADE MÁXIMA - para casos de LID)
+    candidates.append(original_data.get("resolvedPhone"))
     candidates.append(payload.get("resolvedPhone"))
     
     # 1. Sender/ChatID (Geralmente o mais preciso: 5585...@s.whatsapp.net)
@@ -411,14 +415,29 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     message_id = payload.get("id") or payload.get("messageid")
     from_me = bool(payload.get("fromMe") or False)
     
-    # Determinar tipo
-    msg_type = str(payload.get("type") or payload.get("messageType") or "chat").lower()
+    # Determinar tipo e buscar mídias aninhadas (Formato Baileys/Common)
+    msg_keys = list(payload.keys())
     media_url = payload.get("mediaUrl") or payload.get("url")
     
+    # Se não achou tipo explícito, tenta deduzir de chaves aninhadas common
+    if any(k in msg_keys for k in ["imageMessage", "videoMessage", "viewOnceMessage", "image"]):
+        msg_type = "image"
+        # Tenta pegar caption de dentro se existir
+        sub = payload.get("imageMessage") or payload.get("image") or payload.get("viewOnceMessage")
+        if isinstance(sub, dict):
+            mensagem_texto = mensagem_texto or sub.get("caption") or sub.get("text")
+            media_url = media_url or sub.get("url")
+    elif any(k in msg_keys for k in ["audioMessage", "ptt", "audio"]):
+        msg_type = "audio"
+    elif any(k in msg_keys for k in ["documentMessage", "document"]):
+        msg_type = "document"
+    else:
+        msg_type = str(payload.get("type") or payload.get("messageType") or "chat").lower()
+
     message_type = "text"
     if msg_type in ["ptt", "audio"] or "audio" in msg_type:
         message_type = "audio"
-    elif msg_type in ["image", "video"] or "image" in msg_type or (media_url and any(ext in str(media_url).lower() for ext in [".jpg", ".jpeg", ".png", ".webp"])):
+    elif msg_type in ["image", "video"] or "image" in msg_type or (media_url and any(ext in str(media_url).lower() for ext in [".jpg", ".jpeg", ".png", ".webp", ".mp4"])):
         message_type = "image"
     elif msg_type == "document" or "document" in msg_type or (media_url and ".pdf" in str(media_url).lower()):
         message_type = "document"
