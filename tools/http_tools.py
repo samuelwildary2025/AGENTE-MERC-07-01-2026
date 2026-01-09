@@ -433,9 +433,40 @@ def busca_lote_produtos(produtos: list[str]) -> str:
     start_time = time.time()
     logger.info(f"🚀 Iniciando busca em lote para {len(produtos)} produtos")
     
+    # Mapeamento direto de produtos conhecidos que a busca vetorial não encontra bem
+    # Formato: termo_busca → (ean, nome_produto)
+    PRODUTOS_CONHECIDOS = {
+        "pao carioquinha": ("802", "PAO FRANCES kg"),
+        "carioquinha": ("802", "PAO FRANCES kg"),
+        "carioquinhas": ("802", "PAO FRANCES kg"),
+        "pao frances": ("802", "PAO FRANCES kg"),
+        "pão francês": ("802", "PAO FRANCES kg"),
+        "coca-cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
+        "coca-cola 2 litros": ("7894900027013", "REFRIG COCA COLA PET 2L"),
+        "coca cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
+        "coca cola 2 litros": ("7894900027013", "REFRIG COCA COLA PET 2L"),
+    }
+    
     def buscar_produto_completo(produto: str) -> dict:
         """Busca EAN e depois preço de um produto"""
         try:
+            produto_lower = produto.lower().strip()
+            
+            # 0. SHORTCUT: Verificar se é um produto conhecido
+            if produto_lower in PRODUTOS_CONHECIDOS:
+                ean, nome = PRODUTOS_CONHECIDOS[produto_lower]
+                logger.info(f"⚡ [SHORTCUT] Produto conhecido: '{produto}' → EAN {ean}")
+                preco_result = estoque_preco(ean)
+                try:
+                    preco_data = json.loads(preco_result)
+                    if preco_data and isinstance(preco_data, list) and len(preco_data) > 0:
+                        item = preco_data[0]
+                        preco = item.get("preco", 0)
+                        logger.info(f"✅ [SHORTCUT] Sucesso: {nome} (R$ {preco})")
+                        return {"produto": nome, "erro": None, "preco": preco, "ean": ean}
+                except Exception as e:
+                    logger.warning(f"⚠️ [SHORTCUT] Erro ao consultar preço: {e}")
+            
             # 1. Buscar EAN (Postgres)
             # IMPORTANTE: ean_lookup retorna uma string formatada (EANS_ENCONTRADOS: ...)
             ean_result = ean_lookup(produto)
@@ -474,9 +505,17 @@ def busca_lote_produtos(produtos: list[str]) -> str:
                 "feijao": ["carioca"],
                 "oleo": ["soja"],
                 "tomate": ["tomate kg"],
-                "cebola": ["cebola kg"],
+                "cebola": ["cebola branca", "cebola kg"],  # Prioriza branca
                 "batata": ["batata kg"],
-                "calabresa": ["calabresa kg"], # Prioriza a granel
+                "calabresa": ["calabresa kg"],
+                # Padaria - NOVO
+                "pao": ["pao frances", "frances kg"],
+                "carioquinha": ["pao frances", "frances kg"],
+                "frances": ["pao frances", "frances kg"],
+                # Refrigerantes - NOVO
+                "coca": ["coca cola", "coca-cola"],
+                "coca-cola": ["coca cola pet", "coca-cola pet"],
+                "guarana": ["guarana antarctica"],
             }
             
             produto_lower = produto.lower()
