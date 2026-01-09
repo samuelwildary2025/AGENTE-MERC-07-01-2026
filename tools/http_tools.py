@@ -318,23 +318,22 @@ def estoque_preco(ean: str) -> str:
             # 2. Verificar Estoque
             qty = _extract_qty(d)
             
-            # Categorias de pesagem que ACEITAM estoque negativo/zerado
-            # (Pois muitas vezes vendem antes de dar entrada na nota)
+            # Categorias que NÃO verificam estoque (produção própria ou pesagem)
+            # PADARIA: produtos feitos na hora, não têm controle de quantidade
+            # FRIGORIFICO/AÇOUGUE: vendem antes de dar entrada na nota
+            # HORTI/LEGUMES: idem, produção variável
             cat = str(d.get("classificacao01", "")).upper()
-            aceita_negativo = any(x in cat for x in ["FRIGORIFICO", "HORTI", "AÇOUGUE", "ACOUGUE", "LEGUMES", "VERDURAS", "AVES", "CARNES"])
+            ignora_estoque = any(x in cat for x in [
+                "PADARIA",  # Pães, bolos - feitos na hora
+                "FRIGORIFICO", "HORTI", "AÇOUGUE", "ACOUGUE", 
+                "LEGUMES", "VERDURAS", "AVES", "CARNES"
+            ])
             
-            if aceita_negativo:
-                 # Para pesáveis, aceitamos qualquer coisa diferente de zero?
-                 # Ou aceitamos até zero se estiver ativo?
-                 # O usuário disse: "não leve em consideração a quantidade negativa".
-                 # Vou assumir que se estiver ativo, tá valendo, independente do estoque (mesmo 0 ou negativo).
-                 # Mas 0 geralmente é indisponível real. Vou manter a regra de aceitar negativo, mas bloquear 0.
-                 if qty is not None and qty != 0:
-                     return True
-                 # Se for 0, bloqueia?
-                 # O frango estava com -1174 (negativo). O Tomate 145 (positivo).
-                 # Se vier 0, provavelmente não tem.
-                 return False
+            if ignora_estoque:
+                # Para essas categorias, se estiver ativo, tá valendo
+                # Não importa se o estoque está 0 ou negativo
+                logger.debug(f"Item de {cat}: ignorando verificação de estoque (ativo={is_active})")
+                return True
 
             # Para os demais (Mercearia, Bebidas, etc), estoque deve ser POSITIVO
             if qty is not None and qty > 0:
