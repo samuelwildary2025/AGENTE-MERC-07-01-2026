@@ -502,6 +502,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         "message_type": message_type,
         "message_id": message_id,
         "from_me": from_me,
+        "media_url": media_url,
     }
 
 def send_whatsapp_message(telefone: str, mensagem: str) -> bool:
@@ -780,6 +781,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
         tel, txt, from_me = data["telefone"], data["mensagem_texto"], data["from_me"]
         msg_type = data.get("message_type", "text")
         msg_id = data.get("message_id")  # ID da mensagem para mark_as_read
+        media_url = data.get("media_url")
 
         # Se for áudio/imagem/doc, o texto pode vir vazio (será preenchido depois na transcrição ou OCR)
         # Só bloqueamos se não houver telefone, OU se for texto puro sem conteúdo e sem mídia
