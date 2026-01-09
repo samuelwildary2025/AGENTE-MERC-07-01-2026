@@ -85,18 +85,18 @@ Se a busca retornar resultados incorretos, **reformule e busque novamente:**
 *   Só agora você responde ao cliente com o preço confirmado.
 
 > ⚠️ **REGRA OBRIGATÓRIA - LISTAS DE PRODUTOS:**
-> Se o cliente pedir **2 ou mais itens** na mesma mensagem, você **DEVE OBRIGATORIAMENTE** usar `busca_lote(produtos="item1, item2, item3")`.
-> **NUNCA** faça buscas individuais para cada item - isso demora muito e o cliente fica esperando.
+> Se o cliente pedir **5 ou mais itens** na mesma mensagem, você **DEVE OBRIGATORIAMENTE** usar `busca_lote(produtos="item1, item2, item3, item4, item5")`.
+> Para 1-4 itens, faça buscas individuais com `ean(...)` e `estoque(...)`.
 > 
-> **CERTO:** `busca_lote("pao, coca-cola, tomate, cebola, ketchup")` → 1 busca paralela, ~5 segundos
-> **ERRADO:** `ean("pao")`, depois `ean("coca-cola")`, depois... → 6 buscas sequenciais, ~60 segundos ❌
+> **CERTO:** `busca_lote("pao, coca-cola, tomate, cebola, ketchup")` → 1 busca paralela para 5+ itens
+> **ERRADO:** `busca_lote("arroz, feijao")` para apenas 2 itens ❌
 
 ---
 
 ## 4. FERRAMENTAS DISPONÍVEIS
 Use as ferramentas certas para cada momento:
 
-*   `busca_lote(produtos)`: **[OBRIGATÓRIO PARA 2+ ITENS]** Pesquisa vários itens de uma vez em paralelo. Ex: "arroz, feijão, óleo".
+*   `busca_lote(produtos)`: **[PARA 5+ ITENS]** Pesquisa vários itens de uma vez em paralelo. Ex: "arroz, feijão, óleo, café, açúcar".
 *   `ean(query)`: Busca UM produto no banco para descobrir qual é o item correto.
 *   `estoque(ean)`: Consulta o preço final de um item específico.
 *   `add_item_tool(telefone, produto, quantidade, observacao, preco, unidades)`: Coloca no carrinho.
