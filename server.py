@@ -109,42 +109,54 @@ def process_pdf(message_id: str) -> Optional[str]:
         logger.error(f"Erro ao ler PDF: {e}")
         return None
 
-def transcribe_audio(message_id: str) -> Optional[str]:
+def transcribe_audio(message_id: str = None, base64_data: str = None, mimetype: str = None) -> Optional[str]:
     """
     Transcreve áudio usando Google Gemini.
-    Baixa o áudio em Base64 via API, salva em disco e envia para Gemini.
+    
+    Prioridade:
+    1. Se base64_data for fornecido, usa diretamente (do webhook)
+    2. Senão, tenta baixar via API usando message_id
     """
-    if not message_id: return None
+    import base64
+    import tempfile
+    import os as os_module
     
-    logger.info(f"🎤 DEBUG TRANSCRIBE: Iniciando para ID {message_id}")
-
-    # 1. Obter Base64 do áudio via API
-    media_data = whatsapp.get_media_base64(message_id)
+    audio_bytes = None
+    mime_type_clean = (mimetype or "audio/ogg").split(";")[0].strip()
     
-    logger.info(f"🎤 DEBUG TRANSCRIBE: Retorno API = {type(media_data)}")
+    # 1. Tentar usar Base64 direto (do webhook)
+    if base64_data:
+        try:
+            audio_bytes = base64.b64decode(base64_data)
+            logger.info(f"🎤 Usando áudio Base64 direto do webhook ({len(audio_bytes)} bytes)")
+        except Exception as e:
+            logger.error(f"Erro ao decodificar Base64 do webhook: {e}")
     
-    if not media_data or not media_data.get("base64"):
-        logger.error(f"❌ [NOVO CÓDIGO 1.6.0] Falha ao obter Base64: {message_id}")
+    # 2. Fallback: Tentar baixar via API
+    if audio_bytes is None and message_id:
+        logger.info(f"🎤 Tentando baixar áudio via API: {message_id}")
+        media_data = whatsapp.get_media_base64(message_id)
+        
+        if media_data and media_data.get("base64"):
+            try:
+                audio_bytes = base64.b64decode(media_data["base64"])
+                mime_type_clean = (media_data.get("mimetype") or mime_type_clean).split(";")[0].strip()
+                logger.info(f"🎤 Áudio baixado via API ({len(audio_bytes)} bytes)")
+            except Exception as e:
+                logger.error(f"Erro ao decodificar Base64 da API: {e}")
+        else:
+            logger.warning(f"⚠️ API não retornou Base64 para: {message_id}")
+    
+    # Se não conseguiu obter o áudio de nenhuma forma
+    if audio_bytes is None:
+        logger.error("❌ Não foi possível obter o áudio nem do webhook nem da API")
         return None
     
     try:
-        logger.info(f"🎧 Transcrevendo áudio com Gemini: {message_id}")
+        logger.info(f"🎧 Transcrevendo áudio com Gemini (mime: {mime_type_clean})")
         
-        # 2. Decodificar Base64
-        import base64
-        audio_data = base64.b64decode(media_data["base64"])
-        mime_type_clean = media_data.get("mimetype", "audio/ogg").split(";")[0].strip()
-        
-        logger.info(f"📤 Uploading to Gemini with mime_type: {mime_type_clean}")
-        
-        # 3. Usar Google Gemini para transcrever
         from google import genai
-        
         client = genai.Client(api_key=settings.google_api_key)
-        
-        # Upload do áudio para o Gemini
-        import tempfile
-        import os as os_module
         
         # Determinar extensão baseada no content-type
         ext_map = {
@@ -158,7 +170,7 @@ def transcribe_audio(message_id: str) -> Optional[str]:
         
         # Salvar temporariamente
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-            tmp.write(audio_data)
+            tmp.write(audio_bytes)
             tmp_path = tmp.name
         
         try:
@@ -538,12 +550,17 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     # --- Lógica de Mídia ---
     if message_type == "audio" and not mensagem_texto:
-        if message_id:
-            # Usa a nova função que suporta Base64
-            trans = transcribe_audio(message_id)
-            mensagem_texto = f"[Áudio]: {trans}" if trans else "[Áudio inaudível]"
+        # Prioriza Base64 do webhook (mais eficiente que API)
+        if media_base64:
+            logger.info(f"🎤 Transcrevendo áudio via Base64 direto do webhook...")
+            trans = transcribe_audio(message_id=message_id, base64_data=media_base64, mimetype=media_mimetype)
+        elif message_id:
+            # Fallback: tentar baixar via API
+            trans = transcribe_audio(message_id=message_id)
         else:
-            mensagem_texto = "[Áudio sem ID]"
+            trans = None
+            
+        mensagem_texto = f"[Áudio]: {trans}" if trans else "[Áudio inaudível]"
             
     elif message_type == "image":
         caption = mensagem_texto or ""
