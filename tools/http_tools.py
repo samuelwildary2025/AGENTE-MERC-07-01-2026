@@ -510,7 +510,7 @@ def busca_lote_produtos(produtos: list[str]) -> str:
                 "leite": ["liquido"],
                 "arroz": ["tipo 1"],
                 "acucar": ["cristal"],
-                "feijao": ["carioca"],
+                "feijao": ["carioca", "corda", "branco", "preto"],
                 "oleo": ["soja"],
                 "tomate": ["tomate kg"],
                 "cebola": ["cebola branca", "cebola kg"],  # Prioriza branca
