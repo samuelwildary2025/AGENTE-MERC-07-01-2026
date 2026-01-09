@@ -436,11 +436,19 @@ def busca_lote_produtos(produtos: list[str]) -> str:
     # Mapeamento direto de produtos conhecidos que a busca vetorial não encontra bem
     # Formato: termo_busca → (ean, nome_produto)
     PRODUTOS_CONHECIDOS = {
+        # Pães
         "pao carioquinha": ("802", "PAO FRANCES kg"),
         "carioquinha": ("802", "PAO FRANCES kg"),
         "carioquinhas": ("802", "PAO FRANCES kg"),
         "pao frances": ("802", "PAO FRANCES kg"),
         "pão francês": ("802", "PAO FRANCES kg"),
+        # Salgados de Padaria (prioridade sobre congelados)
+        "coxinha": ("816", "MINI COXINHA PANNEMIX FRANGO kg"),
+        "coxinha de frango": ("816", "MINI COXINHA PANNEMIX FRANGO kg"),
+        "mini coxinha": ("816", "MINI COXINHA PANNEMIX FRANGO kg"),
+        "enroladinho": ("827", "ENROLADINHO SALSICHA"),
+        "enroladinho de salsicha": ("827", "ENROLADINHO SALSICHA"),
+        # Refrigerantes
         "coca-cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
         "coca-cola 2 litros": ("7894900027013", "REFRIG COCA COLA PET 2L"),
         "coca cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
