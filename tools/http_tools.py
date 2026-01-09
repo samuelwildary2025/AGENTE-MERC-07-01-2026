@@ -562,8 +562,8 @@ def busca_lote_produtos(produtos: list[str]) -> str:
             # Ordenar por score (maior para menor)
             candidatos_pontuados.sort(key=lambda x: x[0], reverse=True)
             
-            # 4. Tentar buscar preço nos Top 3 candidatos (Retry Logic)
-            for score, candidato in candidatos_pontuados[:3]:
+            # 4. Tentar buscar preço nos Top 8 candidatos (Retry Logic aumentado)
+            for score, candidato in candidatos_pontuados[:8]:
                 ean = candidato["ean"]
                 nome_candidato = candidato["nome"]
                 logger.info(f"👉 [BUSCA LOTE] Tentando: '{nome_candidato}' (EAN: {ean}) | Score: {score:.2f}")

@@ -128,6 +128,9 @@ def search_products_vector(query: str, limit: int = 20) -> str:
         "hamburger": "hamburguer carne",
         "carne de hamburguer": "hamburguer carne moida",
         "carne hamburguer": "hamburguer carne moida",
+        # Laticínios
+        "leite de saco": "leite liquido",
+        "leite saco": "leite liquido",
         # Normalização de acentos (banco usa sem acento)
         "açúcar": "acucar cristal",
         "açucar": "acucar cristal",
