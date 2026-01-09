@@ -230,7 +230,7 @@ def search_products_vector(query: str, limit: int = 20) -> str:
                     logger.info(f"⚠️ [RETRY] Score baixo ({results[0].get('similarity', 0):.3f}), tentando busca por palavras individuais")
                     
                     # Dividir query em palavras (ignorar palavras muito curtas e stop words)
-                    STOP_WORDS = {"de", "da", "do", "para", "com", "sem", "um", "uma", "kg", "und", "pct"}
+                    STOP_WORDS = {"de", "da", "do", "para", "com", "sem", "um", "uma", "kg", "und", "pct", "tipo"}
                     words = [w for w in query.lower().split() if len(w) >= 3 and w not in STOP_WORDS]
                     
                     if len(words) >= 1:

@@ -344,13 +344,18 @@ def estoque_preco(ean: str) -> str:
             return False
 
         def _extract_qty(d: Dict[str, Any]) -> float | None:
+            best_qty = None
             for k in STOCK_QTY_KEYS:
                 if k in d:
                     try:
-                        return float(str(d.get(k)).replace(',', '.'))
+                        val = float(str(d.get(k)).replace(',', '.'))
+                        if val > 0:
+                            return val # Achou estoque positivo!
+                        if best_qty is None:
+                            best_qty = val # Guarda o primeiro (ex: 0.0) como fallback se nada for > 0
                     except Exception:
                         pass
-            return None
+            return best_qty
 
         def _extract_price(d: Dict[str, Any]) -> float | None:
             for k in PRICE_KEYS:
@@ -455,6 +460,11 @@ def busca_lote_produtos(produtos: list[str]) -> str:
         "feijao de corda": ("7896406001009", "FEIJAO CORDA KI-CALDO 1kg"),
         "cafe": ("7898286200374", "CAFE PURO 250g"),
         "café": ("7898286200374", "CAFE PURO 250g"),
+        # Arroz (Garantindo básicos)
+        "arroz": ("7898236717129", "ARROZ BRANCO 101 1kg"),
+        "arroz branco": ("7898236717129", "ARROZ BRANCO 101 1kg"),
+        "arroz tipo 1": ("7898236717129", "ARROZ BRANCO 101 1kg"),
+        "arroz parboilizado": ("7898236717167", "ARROZ PARBOILIZADO 101 1KG"),
         # Refrigerantes
         "coca-cola 2l": ("7894900027013", "REFRIG COCA COLA PET 2L"),
         "coca-cola 2 litros": ("7894900027013", "REFRIG COCA COLA PET 2L"),
@@ -563,13 +573,20 @@ def busca_lote_produtos(produtos: list[str]) -> str:
                 
                 # 4. Penalidades para termos que o cliente geralmente não quer por padrão (se a busca for genérica)
                 # Se o usuário NÃO digitou "descaf", mas o produto é descaf, penaliza.
-                PALAVRAS_EVITAR = ["descaf", "soluvel", "desnatado"]
+                PALAVRAS_EVITAR = ["descaf", "soluvel", "desnatado", "condensado", "creme de leite"]
+                if "leite" in produto_lower and "po" not in produto_lower:
+                    PALAVRAS_EVITAR.append(" po ") # Evita leite em pó se a busca for "leite"
+                    PALAVRAS_EVITAR.append(" em pó")
+                
+                if "cafe" in produto_lower or "café" in produto_lower:
+                    PALAVRAS_EVITAR.extend(["curto", "maquina", "expresso", "nespresso", "capsula"])
+
                 if "feijao" in produto_lower:
                     PALAVRAS_EVITAR.extend(["branco", "preto", "fradinho"])
                 
                 for palavra in PALAVRAS_EVITAR:
                     if palavra in nome_lower and palavra not in produto_lower:
-                        score -= 15  # Penalidade forte para não sugerir descaf/branco por engano
+                        score -= 20  # Penalidade forte para não sugerir descaf/branco por engano
                 
                 # 5. Penalidade por tamanho (manter baixa para não matar nomes descritivos)
                 score -= len(nome_lower) * 0.02
