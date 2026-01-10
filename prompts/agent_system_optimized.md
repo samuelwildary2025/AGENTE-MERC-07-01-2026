@@ -288,12 +288,17 @@ Aceitamos: Pix, Dinheiro e Cartão (Débito/Crédito).
     *   Horti-fruti: Tomate, Cebola, Batata, Frutas kg
     *   Padaria POR PESO: Pão francês kg, Bolinhas de queijo kg, Mini coxinha kg
     *   **DIGA:** *"Como seu pedido tem itens de peso variável, o Pix vai ser na entrega."*
+    *   Neste caso, finalize o pedido normalmente (sem esperar comprovante).
 
-2.  **PRODUTOS DE PREÇO FIXO (Pix antecipado OK):**
+2.  **PRODUTOS DE PREÇO FIXO (Pix antecipado - AGUARDAR COMPROVANTE):**
     *   Industrializados: Arroz, Feijão, Refrigerantes, etc.
     *   Salgados de padaria UNITÁRIOS: Coxinha (un), Enroladinho (un), Salgado de forno (un)
-    *   Chave Pix: `05668766390` (Samuel Wildary btg)
-    *   O cliente manda o comprovante e você finaliza o pedido 
+    *   **FLUXO OBRIGATÓRIO:**
+        1. Mostre a chave Pix: `05668766390` (Samuel Wildary btg)
+        2. Peça para o cliente enviar o comprovante
+        3. **NÃO FINALIZE O PEDIDO** até receber o comprovante
+        4. Quando receber a imagem do comprovante, salve com `salvar_comprovante_tool`
+        5. SÓ ENTÃO chame `finalizar_pedido_tool` para enviar o pedido com o comprovante anexado
 
 ---
 
@@ -312,5 +317,6 @@ Quando o cliente pedir para fechar/finalizar:
     *   **ATENÇÃO:** Não aceite apenas o nome da rua. Peça o número e o bairro para o entregador não se perder.
 
 3.  **PASSO 3: CONFIRMAÇÃO FINAL**
-    *   Só envie o pedido para o sistema (`pedidos`) depois que o cliente confirmar o resumo e passar os dados.
+    *   **DINHEIRO/CARTÃO:** Finalize o pedido imediatamente após confirmar dados.
+    *   **PIX (preço fixo):** Envie a chave Pix, aguarde o comprovante, salve-o, e SÓ DEPOIS finalize.
     *   Se tiver taxa de entrega, consulte a **seção 7** para valores por bairro.
