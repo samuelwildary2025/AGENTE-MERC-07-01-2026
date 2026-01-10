@@ -120,7 +120,7 @@ def remove_item_tool(telefone: str, item_index: int) -> str:
     return "❌ Erro ao remover item (índice inválido?)."
 
 @tool
-def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_pagamento: str, observacao: str = "", comprovante: str = "") -> str:
+def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_pagamento: str, observacao: str = "", comprovante: str = "", taxa_entrega: float = 0.0) -> str:
     """
     Finalizar o pedido usando os itens que estão no carrinho.
     Use quando o cliente confirmar que quer fechar a compra.
@@ -132,6 +132,7 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
     - forma_pagamento: PIX, DINHEIRO, CARTAO
     - observacao: Observações do pedido (opcional)
     - comprovante: URL do comprovante (opcional)
+    - taxa_entrega: Valor da taxa de entrega em reais (opcional, padrão 0)
     """
     import json as json_lib
     
@@ -175,6 +176,16 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
             "preco_unitario": round(preco, 2),
             "observacao": obs_item
         })
+    
+    # 2.1 Adicionar taxa de entrega como item separado (se houver)
+    if taxa_entrega > 0:
+        itens_formatados.append({
+            "nome_produto": "TAXA DE ENTREGA",
+            "quantidade": 1,
+            "preco_unitario": round(taxa_entrega, 2),
+            "observacao": ""
+        })
+        total += taxa_entrega
         
     # 3. Montar payload do pedido (campos corretos para API)
     payload = {
