@@ -254,11 +254,12 @@ def analyze_image(message_id: Optional[str], url: Optional[str] = None) -> Optio
         image_file = client.files.upload(file=file_path, config={"mime_type": mime_type_clean or "image/jpeg"})
 
         prompt = (
-            "Analise cuidadosamente esta imagem e identifique o produto (se for um produto). "
-            "Retorne um texto curto em português com: nome do produto, marca, versão/sabor/variante, "
-            "tamanho/peso/volume e qualquer detalhe útil visível. "
-            "Se não for um produto (ex.: foto borrada, pessoa, conversa), diga apenas: 'Imagem não identificada'. "
-            "Não invente detalhes; só use o que estiver visível."
+            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\n\n"
+            "1. Se for um COMPROVANTE DE PAGAMENTO (PIX, transferência, recibo bancário): "
+            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\n\n"
+            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\n\n"
+            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\n\n"
+            "Retorne um texto curto em português. Não invente detalhes."
         )
 
         model_candidates = [settings.llm_model or "gemini-2.0-flash-lite", "gemini-2.0-flash"]
@@ -319,11 +320,12 @@ def _analyze_image_from_base64(base64_data: str, mimetype: str = None) -> Option
         image_file = client.files.upload(file=file_path, config={"mime_type": mime_type_clean})
         
         prompt = (
-            "Analise cuidadosamente esta imagem e identifique o produto (se for um produto). "
-            "Retorne um texto curto em português com: nome do produto, marca, versão/sabor/variante, "
-            "tamanho/peso/volume e qualquer detalhe útil visível. "
-            "Se não for um produto (ex.: foto borrada, pessoa, conversa), diga apenas: 'Imagem não identificada'. "
-            "Não invente detalhes; só use o que estiver visível."
+            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\n\n"
+            "1. Se for um COMPROVANTE DE PAGAMENTO (PIX, transferência, recibo bancário): "
+            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\n\n"
+            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\n\n"
+            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\n\n"
+            "Retorne um texto curto em português. Não invente detalhes."
         )
         
         model = settings.llm_model or "gemini-2.0-flash-lite"
