@@ -154,10 +154,14 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
         
         nome_produto = item.get("produto", item.get("nome_produto", "Produto"))
         
-        # Se tem unidades, é produto pesado (tomate, cebola, etc)
+        # Se tem unidades, é produto pesado (tomate, cebola, pão, etc)
         if unidades > 0:
             qtd_api = unidades
             valor_estimado = round(preco * quantidade, 2)
+            # IMPORTANTE: preco_unitario para API deve ser por UNIDADE, não por KG
+            # Caso contrário: 8 pães × R$15.99/kg = R$127.92 (ERRADO)
+            # Correto: 8 pães × R$0.80/un = R$6.40
+            preco_unitario_api = round(valor_estimado / unidades, 2)
             obs_peso = f"Peso estimado: {quantidade:.3f}kg (~R${valor_estimado:.2f}). PESAR para confirmar valor."
             if obs_item:
                 obs_item = f"{obs_item}. {obs_peso}"
@@ -169,11 +173,12 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
                 qtd_api = 1
             else:
                 qtd_api = int(quantidade)
+            preco_unitario_api = round(preco, 2)
         
         itens_formatados.append({
             "nome_produto": nome_produto,
             "quantidade": qtd_api,
-            "preco_unitario": round(preco, 2),
+            "preco_unitario": preco_unitario_api,
             "observacao": obs_item
         })
     
