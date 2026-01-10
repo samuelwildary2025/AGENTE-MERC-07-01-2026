@@ -750,7 +750,7 @@ def buffer_loop(tel):
                 break
                 
             # Obter contexto de sessão
-            order_ctx = get_order_context(n)
+            order_ctx = get_order_context(n, final)
             if order_ctx:
                 final = f"{order_ctx}\n\n{final}"
             
@@ -855,7 +855,7 @@ async def _enqueue_buffer_job(telefone: str):
                 break
             
             # Obter contexto de sessão
-            order_ctx = get_order_context(n)
+            order_ctx = get_order_context(n, final)
             if order_ctx:
                 final = f"{order_ctx}\n\n{final}"
             

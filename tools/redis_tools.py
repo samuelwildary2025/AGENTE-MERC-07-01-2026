@@ -319,15 +319,28 @@ def clear_order_session(telefone: str) -> bool:
         return False
 
 
-def get_order_context(telefone: str) -> str:
+def get_order_context(telefone: str, mensagem: str = "") -> str:
     """
     Retorna o contexto de pedido para injetar no agente.
+    
+    Args:
+        telefone: Número do cliente
+        mensagem: Mensagem atual do cliente (para detectar saudações)
     
     Returns:
         String com instrução para o agente baseada no estado da sessão.
     """
     client = get_redis_client()
     session = get_order_session(telefone)
+    
+    # Detectar se é uma saudação/novo atendimento
+    saudacoes = [
+        "boa tarde", "boa noite", "bom dia", "boa", "olá", "ola", "oi", 
+        "eae", "eai", "e ai", "oii", "oiee", "hello", "hi", "hey",
+        "opa", "opaa", "fala", "salve", "blz", "beleza"
+    ]
+    msg_lower = mensagem.strip().lower()
+    is_greeting = any(msg_lower.startswith(s) or msg_lower == s for s in saudacoes)
     
     # Chave para rastrear se o ÚLTIMO pedido foi finalizado
     completed_key = f"order_completed:{telefone}"
@@ -367,6 +380,15 @@ def get_order_context(telefone: str) -> str:
     
     elif status == "sent":
         # Pedido já foi enviado - está na janela de modificação (15min)
+        # MAS se cliente mandou saudação, ele quer NOVO pedido!
+        if is_greeting:
+            logger.info(f"🔄 Saudação detectada para {telefone} - iniciando NOVO pedido (limpando sessão anterior)")
+            # Limpar sessão antiga e carrinho
+            clear_order_session(telefone)
+            clear_cart(telefone)
+            start_order_session(telefone)
+            return "[SESSÃO] Novo pedido iniciado. Cliente iniciou nova conversa com saudação."
+        
         return "[SESSÃO] Pedido já enviado. Se cliente quiser adicionar algo, use alterar_tool."
     
     return ""
