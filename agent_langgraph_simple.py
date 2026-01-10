@@ -183,6 +183,7 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
         "endereco": endereco or "A combinar",
         "forma": forma_pagamento,
         "observacao": observacao or "",
+        "comprovante_pix": comprovante or None,
         "itens": itens_formatados
     }
     
@@ -334,10 +335,15 @@ def run_agent_langgraph(telefone: str, mensagem: str) -> Dict[str, Any]:
             clean_message = "Analise esta imagem/comprovante enviada."
         logger.info(f"📸 Mídia detectada para visão: {image_url}")
 
-    # 2. Salvar histórico (User)
+    # 2. Obter handler de histórico e CARREGAR mensagens anteriores
     history_handler = None
+    previous_messages: List[BaseMessage] = []
     try:
         history_handler = get_session_history(telefone)
+        # IMPORTANTE: Carregar histórico ANTES de adicionar a nova mensagem
+        previous_messages = history_handler.messages
+        logger.info(f"📚 Histórico carregado: {len(previous_messages)} mensagens anteriores")
+        # Agora salva a nova mensagem do usuário
         history_handler.add_user_message(mensagem)
     except Exception as e:
         logger.error(f"Erro DB User: {e}")
@@ -360,11 +366,16 @@ def run_agent_langgraph(telefone: str, mensagem: str) -> Dict[str, Any]:
                     "image_url": {"url": image_url}
                 }
             ]
-            initial_message = HumanMessage(content=message_content)
+            current_message = HumanMessage(content=message_content)
         else:
-            initial_message = HumanMessage(content=contexto + clean_message)
+            current_message = HumanMessage(content=contexto + clean_message)
 
-        initial_state = {"messages": [initial_message]}
+        # 4. Montar estado inicial COM histórico de mensagens anteriores
+        # Isso permite que o LLM tenha contexto da conversa
+        all_messages = list(previous_messages) + [current_message]
+        initial_state = {"messages": all_messages}
+        logger.info(f"📨 Enviando {len(all_messages)} mensagens para o LLM (histórico + atual)")
+        
         config = {"configurable": {"thread_id": telefone}, "recursion_limit": 100}
         
         logger.info("Executando agente...")
