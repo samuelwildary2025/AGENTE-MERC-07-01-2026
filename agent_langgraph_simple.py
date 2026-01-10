@@ -28,7 +28,10 @@ from tools.redis_tools import (
     add_item_to_cart, 
     get_cart_items, 
     remove_item_from_cart, 
-    clear_cart
+    clear_cart,
+    set_comprovante,
+    get_comprovante,
+    clear_comprovante
 )
 from memory.limited_postgres_memory import LimitedPostgresChatMessageHistory
 
@@ -131,10 +134,18 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
     - endereco: Endereço de entrega (rua, número, bairro)
     - forma_pagamento: PIX, DINHEIRO, CARTAO
     - observacao: Observações do pedido (opcional)
-    - comprovante: URL do comprovante (opcional)
+    - comprovante: URL do comprovante (opcional - será buscado automaticamente se não fornecido)
     - taxa_entrega: Valor da taxa de entrega em reais (opcional, padrão 0)
     """
     import json as json_lib
+    
+    # 0. Buscar comprovante salvo automaticamente se não foi passado
+    comprovante_final = comprovante
+    if not comprovante_final:
+        comprovante_salvo = get_comprovante(telefone)
+        if comprovante_salvo:
+            comprovante_final = comprovante_salvo
+            logger.info(f"🧾 Usando comprovante salvo no Redis: {comprovante_salvo[:50]}...")
     
     # 1. Obter itens do Redis
     items = get_cart_items(telefone)
@@ -199,7 +210,7 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
         "endereco": endereco or "A combinar",
         "forma": forma_pagamento,
         "observacao": observacao or "",
-        "comprovante_pix": comprovante or None,
+        "comprovante_pix": comprovante_final or None,
         "itens": itens_formatados
     }
     
@@ -208,9 +219,10 @@ def finalizar_pedido_tool(cliente: str, telefone: str, endereco: str, forma_paga
     # 4. Enviar via HTTP
     result = pedidos(json_body)
     
-    # 5. Se sucesso, limpar carrinho e marcar status
+    # 5. Se sucesso, limpar carrinho, comprovante e marcar status
     if "sucesso" in result.lower() or "✅" in result:
         clear_cart(telefone)
+        clear_comprovante(telefone)  # Limpar comprovante salvo
         mark_order_sent(telefone)
         
     return result
@@ -260,6 +272,21 @@ def busca_lote_tool(produtos: str) -> str:
         return "❌ Informe os produtos separados por vírgula."
     return busca_lote_produtos(lista_produtos)
 
+@tool
+def salvar_comprovante_tool(telefone: str, url: str) -> str:
+    """
+    Salva a URL do comprovante PIX enviado pelo cliente.
+    Use quando receber uma imagem de comprovante de pagamento válida.
+    O comprovante será anexado automaticamente ao pedido quando finalizado.
+    
+    Args:
+    - telefone: Telefone do cliente
+    - url: URL da imagem do comprovante
+    """
+    if set_comprovante(telefone, url):
+        return "✅ Comprovante PIX salvo com sucesso! Será anexado ao pedido automaticamente."
+    return "❌ Erro ao salvar comprovante. Tente novamente."
+
 # Ferramentas ativas
 ACTIVE_TOOLS = [
     ean_tool_alias,
@@ -273,6 +300,7 @@ ACTIVE_TOOLS = [
     remove_item_tool,
     finalizar_pedido_tool,
     alterar_tool,
+    salvar_comprovante_tool,  # Tool para salvar comprovante PIX
 ]
 
 # ============================================
@@ -371,7 +399,12 @@ def run_agent_langgraph(telefone: str, mensagem: str) -> Dict[str, Any]:
         # IMPORTANTE: Injetar telefone e horário no contexto para que o LLM saiba qual usar
         from tools.time_tool import get_current_time
         hora_atual = get_current_time()
-        contexto = f"[TELEFONE_CLIENTE: {telefone}]\n[HORÁRIO_ATUAL: {hora_atual}]\n\n"
+        contexto = f"[TELEFONE_CLIENTE: {telefone}]\n[HORÁRIO_ATUAL: {hora_atual}]\n"
+        
+        # Se há URL de imagem, injetar no contexto para o agente poder usar em salvar_comprovante_tool
+        if image_url:
+            contexto += f"[URL_IMAGEM: {image_url}]\n"
+        contexto += "\n"
         
         if image_url:
             # Formato multimodal para GPT-4o / GPT-4o-mini

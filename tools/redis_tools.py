@@ -548,3 +548,75 @@ def clear_cart(telefone: str) -> bool:
     except Exception as e:
         logger.error(f"Erro ao limpar carrinho: {e}")
         return False
+
+
+# ============================================
+# Comprovante PIX (Receipt URL Storage)
+# ============================================
+
+def comprovante_key(telefone: str) -> str:
+    """Chave para armazenar URL do comprovante PIX."""
+    return f"comprovante:{telefone}"
+
+
+def set_comprovante(telefone: str, url: str) -> bool:
+    """
+    Salva a URL do comprovante PIX do cliente.
+    TTL de 2 horas (mesmo período que sessão de pedido).
+    
+    Args:
+        telefone: Número do cliente
+        url: URL da imagem do comprovante
+    
+    Returns:
+        True se salvo com sucesso
+    """
+    client = get_redis_client()
+    if client is None:
+        return False
+    
+    try:
+        key = comprovante_key(telefone)
+        client.set(key, url, ex=7200)  # 2 horas
+        logger.info(f"🧾 Comprovante PIX salvo para {telefone}: {url[:50]}...")
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao salvar comprovante: {e}")
+        return False
+
+
+def get_comprovante(telefone: str) -> Optional[str]:
+    """
+    Recupera a URL do comprovante PIX do cliente.
+    
+    Returns:
+        URL do comprovante ou None
+    """
+    client = get_redis_client()
+    if client is None:
+        return None
+    
+    try:
+        key = comprovante_key(telefone)
+        url = client.get(key)
+        if url:
+            logger.info(f"🧾 Comprovante recuperado para {telefone}")
+        return url
+    except Exception as e:
+        logger.error(f"Erro ao recuperar comprovante: {e}")
+        return None
+
+
+def clear_comprovante(telefone: str) -> bool:
+    """Remove o comprovante do cliente (após finalizar pedido)."""
+    client = get_redis_client()
+    if client is None:
+        return False
+    
+    try:
+        client.delete(comprovante_key(telefone))
+        logger.info(f"🧾 Comprovante limpo para {telefone}")
+        return True
+    except Exception as e:
+        logger.error(f"Erro ao limpar comprovante: {e}")
+        return False
