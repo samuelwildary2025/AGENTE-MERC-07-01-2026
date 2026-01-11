@@ -14,6 +14,19 @@ logger = setup_logger(__name__)
 def get_auth_headers() -> Dict[str, str]:
     """Retorna os headers de autenticação para as requisições"""
     token = settings.supermercado_auth_token or ""
+    
+    # Fallback: Tentar ler TOKEN_SUPERMERCADO direto do environment caso o settings esteja vazio
+    # (Caso o usuário tenha nomeado diferente no .env)
+    if not token or len(token) < 10:
+        import os
+        token_env = os.getenv("TOKEN_SUPERMERCADO", "")
+        if token_env:
+            logger.info("⚠️ Usando TOKEN_SUPERMERCADO do env (fallback)")
+            token = token_env
+        else:
+             # Tentar SUPERMERCADO_AUTH_TOKEN direto também (caso Pydantic tenha falhado)
+            token = os.getenv("SUPERMERCADO_AUTH_TOKEN", token)
+
     # Garantir que o token tenha o prefixo Bearer se não tiver
     if token and not token.strip().lower().startswith("bearer"):
         token = f"Bearer {token.strip()}"
