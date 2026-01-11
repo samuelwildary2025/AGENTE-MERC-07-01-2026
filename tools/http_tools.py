@@ -655,3 +655,50 @@ def busca_lote_produtos(produtos: list[str]) -> str:
         resposta.append(f"\nNÃO_ENCONTRADOS: {', '.join(nao_encontrados)}")
     
     return "\n".join(resposta) if resposta else "Nenhum produto encontrado."
+
+
+def consultar_encarte() -> str:
+    """
+    Consulta o encarte atual do supermercado.
+    
+    Returns:
+        JSON string com a URL do encarte ou mensagem de erro.
+    """
+    # Remove trailing slash from base to ensure correct path
+    base = settings.supermercado_base_url.rstrip("/")
+    url = f"{base}/encarte"
+    
+    logger.info(f"Consultando encarte: {url}")
+    
+    try:
+        response = requests.get(
+            url,
+            headers=get_auth_headers(),
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        logger.info(f"Encarte obtido com sucesso: {data}")
+        
+        return json.dumps(data, indent=2, ensure_ascii=False)
+        
+    except requests.exceptions.Timeout:
+        error_msg = "Erro: Timeout ao consultar encarte. Tente novamente."
+        logger.error(error_msg)
+        return error_msg
+    
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"Erro HTTP ao consultar encarte: {e.response.status_code} - {e.response.text}"
+        logger.error(error_msg)
+        return error_msg
+    
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Erro ao consultar encarte: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+    
+    except json.JSONDecodeError:
+        error_msg = "Erro: Resposta do encarte não é um JSON válido."
+        logger.error(error_msg)
+        return error_msg

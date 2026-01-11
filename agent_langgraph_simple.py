@@ -21,7 +21,7 @@ import os
 
 from config.settings import settings
 from config.logger import setup_logger
-from tools.http_tools import estoque, pedidos, alterar, ean_lookup, estoque_preco, busca_lote_produtos
+from tools.http_tools import estoque, pedidos, alterar, ean_lookup, estoque_preco, busca_lote_produtos, consultar_encarte
 from tools.time_tool import get_current_time, search_message_history
 from tools.redis_tools import (
     mark_order_sent, 
@@ -287,6 +287,17 @@ def salvar_comprovante_tool(telefone: str, url: str) -> str:
         return "✅ Comprovante PIX salvo com sucesso! Será anexado ao pedido automaticamente."
     return "❌ Erro ao salvar comprovante. Tente novamente."
 
+@tool
+def consultar_encarte_tool() -> str:
+    """
+    Consulta o encarte (folheto de ofertas) atual do supermercado.
+    Use APENAS se o cliente perguntar explicitamente sobre ofertas, promoções ou encarte.
+    
+    Returns:
+        JSON com a URL da imagem do encarte.
+    """
+    return consultar_encarte()
+
 # Ferramentas ativas
 ACTIVE_TOOLS = [
     ean_tool_alias,
@@ -300,6 +311,7 @@ ACTIVE_TOOLS = [
     remove_item_tool,
     finalizar_pedido_tool,
     alterar_tool,
+    consultar_encarte_tool,
     # salvar_comprovante_tool removido - comprovante agora é salvo automaticamente pelo server.py
 ]
 

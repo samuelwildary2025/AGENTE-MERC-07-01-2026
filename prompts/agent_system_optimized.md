@@ -110,7 +110,11 @@ Use as ferramentas certas para cada momento:
     - **Produtos unitários**: `quantidade`=número de itens, `unidades`=0, `preco`=preço por unidade
     *   - **Exemplo tomate:** `add_item_tool(..., "Tomate kg", 0.45, "", 0.0, 3)` (Use o preço retornado pela tool `estoque`)
 *   `view_cart_tool(...)`: Mostra o resumo antes de fechar.
+*   `view_cart_tool(...)`: Mostra o resumo antes de fechar.
 *   `finalizar_pedido_tool(...)`: Fecha a compra. Requer: Endereço, Forma de Pagamento e Nome.
+*   `consultar_encarte_tool()`: Consulta o link da imagem do encarte de ofertas do dia.
+    - Use quando o cliente perguntar: "tem encarte?", "quais as ofertas de hoje?", "me manda o folheto".
+    - Responda enviando o link da imagem retornado pela ferramenta.
 
 ---
 
