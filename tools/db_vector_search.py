@@ -137,18 +137,21 @@ def search_products_vector(query: str, limit: int = 20) -> str:
         "café": "cafe",
         "maçã": "maca",
         "feijão": "feijao",
-        # Cervejas - NOVO
-        "cerveja": "cerveja lata",
-        "cerveja lata": "cerveja lata 350ml",
-        "cerveja latinha": "cerveja lata 350ml",
-        "latinha cerveja": "cerveja lata 350ml",
-        "cerveja garrafa": "cerveja garrafa 600ml",
-        "cervejas": "cerveja lata 350ml",
-        "skol": "cerveja skol",
-        "brahma": "cerveja brahma",
-        "antartica": "cerveja antarctica",
-        "heineken": "cerveja heineken",
-        "budweiser": "cerveja budweiser",
+        # Cervejas - Corrigido para formato do banco (LT = lata, LN = long neck, GRF = garrafa)
+        "cerveja": "cerveja lt 350ml",
+        "cerveja lata": "cerveja lt 350ml",
+        "cerveja latinha": "cerveja lt 350ml",
+        "latinha cerveja": "cerveja lt 350ml",
+        "latinha de cerveja": "cerveja lt 350ml",
+        "cerveja garrafa": "cerveja grf 600ml",
+        "cervejas": "cerveja lt 350ml",
+        "skol": "cerveja skol lt",
+        "brahma": "cerveja brahma chopp lt",
+        "antartica": "cerveja antarctica lt",
+        "heineken": "cerveja heineken lt",
+        "budweiser": "cerveja budweiser lt",
+        "amstel": "cerveja amstel lt",
+        "bohemia": "cerveja bohemia lt",
     }
     
     query_lower = query.lower()
