@@ -49,9 +49,9 @@ class WhatsAppAPI:
         }
         
         if base64_data:
-            # Se for base64, alguns gateways aceitam como 'media' ou 'base64'
-            payload["media"] = base64_data
-            payload["type"] = "image" # Forçar tipo
+            # API espera 'base64' e 'mimetype' como campos
+            payload["base64"] = base64_data
+            payload["mimetype"] = mimetype
         elif media_url:
             payload["mediaUrl"] = media_url
             
