@@ -145,6 +145,13 @@ def search_products_vector(query: str, limit: int = 20) -> str:
         "latinha de cerveja": "cerveja lt 350ml",
         "cerveja garrafa": "cerveja grf 600ml",
         "cervejas": "cerveja lt 350ml",
+        # Long neck (várias grafias)
+        "long neck": "cerveja ln 330ml",
+        "longneck": "cerveja ln 330ml",
+        "longneque": "cerveja ln 330ml",
+        "long neque": "cerveja ln 330ml",
+        "cerveja long neck": "cerveja ln 330ml",
+        # Marcas específicas
         "skol": "cerveja skol lt",
         "brahma": "cerveja brahma chopp lt",
         "antartica": "cerveja antarctica lt",
@@ -154,16 +161,17 @@ def search_products_vector(query: str, limit: int = 20) -> str:
         "bohemia": "cerveja bohemia lt",
     }
     
-    query_lower = query.lower()
+    query_lower = query.lower().strip()
     enhanced_query = query
     
-    # Primeiro, aplicar traduções de termos
-    for term, abbreviation in TERM_TRANSLATIONS.items():
+    # Primeiro, aplicar traduções de termos (ORDENAR por tamanho decrescente para pegar matches maiores primeiro)
+    sorted_translations = sorted(TERM_TRANSLATIONS.items(), key=lambda x: len(x[0]), reverse=True)
+    for term, abbreviation in sorted_translations:
         if term in query_lower:
-            # Substitui o termo na query para os passos seguintes
-            query = query_lower.replace(term, abbreviation)
-            enhanced_query = query
-            logger.info(f"🔄 [TRADUÇÃO] '{term}' → '{abbreviation}' (Query: '{query}')")
+            # SUBSTITUIR COMPLETAMENTE a query para evitar duplicações
+            query = abbreviation
+            enhanced_query = abbreviation
+            logger.info(f"🔄 [TRADUÇÃO] '{term}' → '{abbreviation}'")
             break
     
     # Se a busca é por um produto hortifruti, adiciona contexto para melhorar a relevância
