@@ -253,29 +253,45 @@ def search_products_vector(query: str, limit: int = 20) -> str:
                     logger.info(f"⚠️ [RETRY] Score baixo ({results[0].get('similarity', 0):.3f}), tentando busca por palavras individuais")
                     
                     # Dividir query em palavras (ignorar palavras muito curtas e stop words)
-                    STOP_WORDS = {"de", "da", "do", "para", "com", "sem", "um", "uma", "kg", "und", "pct", "tipo"}
-                    words = [w for w in query.lower().split() if len(w) >= 3 and w not in STOP_WORDS]
+                    STOP_WORDS = {"de", "da", "do", "para", "com", "sem", "um", "uma", "kg", "und", "pct", "tipo", "350ml", "600ml", "330ml", "2l", "1l"}
+                    # Palavras de contexto que devem ser mantidas junto com outras palavras
+                    CONTEXT_WORDS = {"cerveja", "refrigerante", "refrig", "suco", "agua", "vinho", "bebida"}
+                    
+                    words = [w for w in query.lower().split() if len(w) >= 2 and w not in STOP_WORDS]
+                    
+                    # Identificar se há uma palavra de contexto
+                    context_word = None
+                    for w in words:
+                        if w in CONTEXT_WORDS:
+                            context_word = w
+                            break
                     
                     if len(words) >= 1:
                         best_results = results  # Manter resultados originais como fallback
                         best_score = results[0].get("similarity", 0)
                         
-                        # Tentar cada palavra individual
+                        # Tentar cada palavra individual (mantendo contexto se existir)
                         for word in words:
-                            # Gerar embedding para a palavra individual
-                            word_embedding = _generate_embedding(word)
-                            word_embedding_str = f"[{','.join(map(str, word_embedding))}]"
+                            if word == context_word:
+                                continue  # Não buscar só a palavra de contexto sozinha
                             
-                            cur.execute(sql, (word_embedding_str, word_embedding_str, limit))
-                            word_results = cur.fetchall()
+                            # Se temos contexto, buscar "contexto + palavra" (ex: "cerveja grf")
+                            search_term = f"{context_word} {word}" if context_word and word != context_word else word
                             
-                            if word_results:
-                                word_score = word_results[0].get("similarity", 0)
+                            # Gerar embedding para o termo de busca
+                            term_embedding = _generate_embedding(search_term)
+                            term_embedding_str = f"[{','.join(map(str, term_embedding))}]"
+                            
+                            cur.execute(sql, (search_term, term_embedding_str, limit))
+                            term_results = cur.fetchall()
+                            
+                            if term_results:
+                                term_score = term_results[0].get("similarity", 0)
                                 # Aceitar se score for significativamente melhor
-                                if word_score > best_score + 0.05:
-                                    logger.info(f"✅ [RETRY] Palavra '{word}' encontrou melhores resultados: {word_score:.3f}")
-                                    best_results = word_results
-                                    best_score = word_score
+                                if term_score > best_score + 0.05:
+                                    logger.info(f"✅ [RETRY] Termo '{search_term}' encontrou melhores resultados: {term_score:.3f}")
+                                    best_results = term_results
+                                    best_score = term_score
                         
                         results = best_results
                 
