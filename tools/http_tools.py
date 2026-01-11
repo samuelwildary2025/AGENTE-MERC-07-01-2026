@@ -693,7 +693,7 @@ def consultar_encarte() -> str:
     """
     # Remove trailing slash from base to ensure correct path
     base = settings.supermercado_base_url.rstrip("/")
-    url = f"{base}/encarte"
+    url = f"{base}/encarte/"
     
     logger.info(f"Consultando encarte: {url}")
     
