@@ -29,6 +29,38 @@ class WhatsAppAPI:
         """Remove caracteres não numéricos"""
         return re.sub(r"\D", "", str(phone))
 
+    def send_image(self, to: str, image_url: str, caption: str = "") -> bool:
+        """
+        Envia mensagem de imagem
+        POST /message/image
+        """
+        if not self.base_url: return False
+        
+        url = f"{self.base_url}/message/image"
+        
+        # Limpa o número
+        clean_num = self._clean_number(to)
+        jid = f"{clean_num}@s.whatsapp.net"
+        
+        payload = {
+            "to": jid,
+            "url": image_url,
+            "caption": caption
+        }
+        
+        logger.info(f"📷 Enviando imagem para {jid}: {image_url}")
+        
+        try:
+            resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=15)
+            if resp.status_code != 200:
+                logger.error(f"❌ Erro envio imagem ({resp.status_code}): {resp.text[:200]}")
+            else:
+                logger.info("✅ Imagem enviada com sucesso")
+            return resp.status_code == 200
+        except Exception as e:
+            logger.error(f"❌ Erro ao enviar imagem: {e}")
+            return False
+
     def send_text(self, to: str, text: str) -> bool:
         """
         Envia mensagem de texto simples

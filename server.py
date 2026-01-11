@@ -713,8 +713,20 @@ def process_async(tel, msg, mid=None):
         send_presence(num, "paused")
         time.sleep(0.5) # Pausa dramática antes de chegar
 
-        # 6. Enviar Mensagem
-        send_whatsapp_message(tel, txt)
+        # 6. Enviar Mensagem (Inteligente: Texto ou Imagem)
+        # Regex para encontrar URL de imagem (jpg, png, jpeg, webp)
+        # Ex: https://.../encarte.jpg
+        img_match = re.search(r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))', txt, re.IGNORECASE)
+        
+        if img_match:
+            image_url = img_match.group(1)
+            # Remove a URL do texto para virar caption
+            caption = txt.replace(image_url, "").strip()
+            
+            logger.info(f"📸 Detectado URL de imagem na resposta: {image_url}")
+            whatsapp.send_image(tel, image_url, caption)
+        else:
+            send_whatsapp_message(tel, txt)
 
     except Exception as e:
         logger.error(f"Erro async: {e}")
