@@ -583,6 +583,15 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         if analysis:
             base = caption.strip()
             mensagem_texto = f"{base}\n[Análise da imagem]: {analysis}".strip() if base else f"[Análise da imagem]: {analysis}"
+            
+            # AUTO-SAVE: Se for comprovante de pagamento, salvar Base64 no Redis automaticamente
+            if "COMPROVANTE" in analysis.upper() and media_base64:
+                from tools.redis_tools import set_comprovante
+                # Salvar o Base64 com prefixo data:image para o painel converter
+                mime = media_mimetype or "image/jpeg"
+                data_uri = f"data:{mime};base64,{media_base64}"
+                set_comprovante(telefone, data_uri)
+                logger.info(f"🧾 Comprovante Base64 salvo automaticamente para {telefone}")
         else:
             mensagem_texto = caption.strip() if caption else "[Imagem recebida]"
 
