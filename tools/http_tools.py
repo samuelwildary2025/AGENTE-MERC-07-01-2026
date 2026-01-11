@@ -17,6 +17,10 @@ def get_auth_headers() -> Dict[str, str]:
     # Garantir que o token tenha o prefixo Bearer se não tiver
     if token and not token.strip().lower().startswith("bearer"):
         token = f"Bearer {token.strip()}"
+    
+    # DEBUG: Verificar formato do token (mascarado)
+    safe_token = f"{token[:15]}...{token[-5:]}" if len(token) > 20 else "CURTO/VAZIO"
+    logger.info(f"🔑 Auth Header gerado: {safe_token}")
         
     return {
         "Authorization": token,
