@@ -19,12 +19,17 @@ def get_auth_headers() -> Dict[str, str]:
     # (Caso o usuário tenha nomeado diferente no .env)
     if not token or len(token) < 10:
         import os
+        from dotenv import load_dotenv
+        
+        # FORÇAR recarregamento do .env para pegar mudanças sem reiniciar servidor
+        load_dotenv(override=True)
+        
         token_env = os.getenv("TOKEN_SUPERMERCADO", "")
         if token_env:
-            logger.info("⚠️ Usando TOKEN_SUPERMERCADO do env (fallback)")
+            logger.info("⚠️ Usando TOKEN_SUPERMERCADO do env (fallback reload)")
             token = token_env
         else:
-             # Tentar SUPERMERCADO_AUTH_TOKEN direto também (caso Pydantic tenha falhado)
+             # Tentar SUPERMERCADO_AUTH_TOKEN direto também
             token = os.getenv("SUPERMERCADO_AUTH_TOKEN", token)
 
     # Garantir que o token tenha o prefixo Bearer se não tiver
