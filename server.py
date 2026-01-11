@@ -717,7 +717,12 @@ def process_async(tel, msg, mid=None):
         # Regex para encontrar URL de imagem (jpg, png, jpeg, webp)
         # Ex: https://.../encarte.jpg
         # OTIMIZADO: Evita pontuação final (.,;!)
-        img_match = re.search(r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))(?:[.,;!\s]|$)', txt, re.IGNORECASE)
+        regex = r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))(?:[.,;!\s]|$)'
+        img_match = re.search(regex, txt, re.IGNORECASE)
+        
+        # DEBUG: Ver se achou imagem
+        if "http" in txt:
+             logger.info(f"🔍 Verificando URL na msg: {txt} | Match: {bool(img_match)}")
         
         if img_match:
             image_url = img_match.group(1)
