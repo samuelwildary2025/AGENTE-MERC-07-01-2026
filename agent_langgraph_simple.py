@@ -300,7 +300,7 @@ ACTIVE_TOOLS = [
     remove_item_tool,
     finalizar_pedido_tool,
     alterar_tool,
-    salvar_comprovante_tool,  # Tool para salvar comprovante PIX
+    # salvar_comprovante_tool removido - comprovante agora é salvo automaticamente pelo server.py
 ]
 
 # ============================================
