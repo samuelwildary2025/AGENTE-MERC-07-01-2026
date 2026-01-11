@@ -13,8 +13,13 @@ logger = setup_logger(__name__)
 
 def get_auth_headers() -> Dict[str, str]:
     """Retorna os headers de autenticação para as requisições"""
+    token = settings.supermercado_auth_token or ""
+    # Garantir que o token tenha o prefixo Bearer se não tiver
+    if token and not token.strip().lower().startswith("bearer"):
+        token = f"Bearer {token.strip()}"
+        
     return {
-        "Authorization": settings.supermercado_auth_token,
+        "Authorization": token,
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
