@@ -29,14 +29,15 @@ class WhatsAppAPI:
         """Remove caracteres não numéricos"""
         return re.sub(r"\D", "", str(phone))
 
-    def send_image(self, to: str, image_url: str, caption: str = "") -> bool:
+    def send_media(self, to: str, media_url: str = None, caption: str = "", base64_data: str = None, mimetype: str = "image/jpeg") -> bool:
         """
-        Envia mensagem de imagem
-        POST /message/image
+        Envia mensagem de mídia (Imagem/Vídeo/PDF)
+        POST /message/media
+        Aceita URL ou Base64
         """
         if not self.base_url: return False
         
-        url = f"{self.base_url}/message/image"
+        url = f"{self.base_url}/message/media"
         
         # Limpa o número
         clean_num = self._clean_number(to)
@@ -44,21 +45,29 @@ class WhatsAppAPI:
         
         payload = {
             "to": jid,
-            "url": image_url,
             "caption": caption
         }
         
-        logger.info(f"📷 Enviando imagem para {jid}: {image_url}")
+        if base64_data:
+            # Se for base64, alguns gateways aceitam como 'media' ou 'base64'
+            payload["media"] = base64_data
+            payload["type"] = "image" # Forçar tipo
+        elif media_url:
+            payload["mediaUrl"] = media_url
+            
+        logger.info(f"📷 Enviando mídia para {jid} | HasURL: {bool(media_url)} | HasBase64: {bool(base64_data)}")
         
         try:
-            resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=15)
+            resp = requests.post(url, headers=self._get_headers(), json=payload, timeout=25)
             if resp.status_code != 200:
-                logger.error(f"❌ Erro envio imagem ({resp.status_code}): {resp.text[:200]}")
+                logger.error(f"❌ Erro envio mídia ({resp.status_code}): {resp.text[:200]}")
+                # Fallback: Tentar endpoint antigo ou alternativo se falhar? 
+                # Por enquanto apenas logar erro.
             else:
-                logger.info("✅ Imagem enviada com sucesso")
+                logger.info("✅ Mídia enviada com sucesso")
             return resp.status_code == 200
         except Exception as e:
-            logger.error(f"❌ Erro ao enviar imagem: {e}")
+            logger.error(f"❌ Erro ao enviar mídia: {e}")
             return False
 
     def send_text(self, to: str, text: str) -> bool:

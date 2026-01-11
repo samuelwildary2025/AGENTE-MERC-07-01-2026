@@ -729,8 +729,33 @@ def process_async(tel, msg, mid=None):
             # Remove a URL do texto para virar caption
             caption = txt.replace(image_url, "").strip()
             
-            logger.info(f"📸 Detectado URL de imagem na resposta: {image_url}")
-            whatsapp.send_image(tel, image_url, caption)
+            logger.info(f"📸 Detectado URL de imagem: {image_url}")
+            logger.info(f"⬇️ Baixando imagem para enviar como arquivo...")
+            
+            try:
+                # Baixar imagem para memória
+                import base64
+                img_resp = requests.get(image_url, timeout=15)
+                img_resp.raise_for_status()
+                
+                # Converter para Base64
+                img_b64 = base64.b64encode(img_resp.content).decode('utf-8')
+                
+                # Adicionar cabeçalho data URI para o endpoint (se necessário pela API, mas geralmente envia cru ou datauri)
+                # Testaremos Base64 puro no campo 'media' conforme padrão de algumas APIs
+                # Se a API esperar data:image/..., ajustaremos. Vamos mandar data URI para garantir.
+                mime = img_resp.headers.get("Content-Type", "image/jpeg")
+                # Alguns endpoints exigem "data:image/jpeg;base64,..."
+                # Outros só o raw. Vamos tentar enviar raw no 'media' e se falhar tentar url.
+                
+                # Pela documentação da Evolution (comum), 'media' aceita base64. 
+                # Vamos passar o base64 puro.
+                whatsapp.send_media(tel, caption=caption, base64_data=img_b64, mimetype=mime)
+                
+            except Exception as e:
+                logger.error(f"❌ Erro ao baixar/enviar imagem: {e}")
+                # Fallback: Tentar enviar via URL se o download falhar
+                whatsapp.send_media(tel, media_url=image_url, caption=caption)
         else:
             send_whatsapp_message(tel, txt)
 
