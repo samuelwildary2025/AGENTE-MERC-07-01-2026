@@ -708,6 +708,13 @@ def consultar_encarte() -> str:
         data = response.json()
         logger.info(f"Encarte obtido com sucesso: {data}")
         
+        # FORÇAR domínio correto se a URL for relativa
+        encarte_url = data.get("encarte_url", "")
+        if encarte_url and encarte_url.startswith("/"):
+            # Domínio correto solicitado pelo usuário
+            domain = "https://app.aimerc.com.br"
+            data["encarte_url"] = f"{domain}{encarte_url}"
+            
         return json.dumps(data, indent=2, ensure_ascii=False)
         
     except requests.exceptions.Timeout:

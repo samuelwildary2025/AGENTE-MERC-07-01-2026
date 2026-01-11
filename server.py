@@ -716,7 +716,8 @@ def process_async(tel, msg, mid=None):
         # 6. Enviar Mensagem (Inteligente: Texto ou Imagem)
         # Regex para encontrar URL de imagem (jpg, png, jpeg, webp)
         # Ex: https://.../encarte.jpg
-        img_match = re.search(r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))', txt, re.IGNORECASE)
+        # OTIMIZADO: Evita pontuação final (.,;!)
+        img_match = re.search(r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))(?:[.,;!\s]|$)', txt, re.IGNORECASE)
         
         if img_match:
             image_url = img_match.group(1)
