@@ -117,38 +117,55 @@ async def process_message(ctx: Dict[str, Any], telefone: str, mensagem: str, mes
 
 
 def _send_whatsapp_message(telefone: str, mensagem: str) -> bool:
-    """Helper síncrono para enviar mensagem (com detecção de imagem)"""
+    """Helper síncrono para enviar mensagem (com detecção de múltiplas imagens)"""
     import requests
     import base64
+    import re
     
-    # Detectar URL de imagem na resposta
-    img_match = re.search(r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))(?:[.,;!\s]|$)', mensagem, re.IGNORECASE)
+    # Regex para encontrar todas as URLs de imagem (jpg, png, jpeg, webp)
+    # OTIMIZADO: Evita pontuação final (.,;!) e captura múltiplos
+    regex = r'(https?://[^\s]+\.(?:jpg|jpeg|png|webp))'
+    urls_encontradas = re.findall(regex, mensagem, re.IGNORECASE)
     
-    if img_match:
-        image_url = img_match.group(1)
-        caption = mensagem.replace(image_url, "").strip()
+    if urls_encontradas:
+        # Texto limpo: remove todos os links para não ficar redundante no WhatsApp
+        texto_limpo = mensagem
+        for url in urls_encontradas:
+            # Substitui links seguidos opcionalmente por quebras de linha/espaços
+            texto_limpo = re.sub(re.escape(url) + r'[\s\n]*', '', texto_limpo).strip()
+            
+        logger.info(f"📸 Detectadas {len(urls_encontradas)} URLs de imagem. Texto limpo: {texto_limpo[:50]}...")
         
-        logger.info(f"📸 Detectado URL de imagem: {image_url}")
-        logger.info(f"⬇️ Baixando imagem para enviar como arquivo...")
+        # Enviar cada imagem
+        for i, image_url in enumerate(urls_encontradas):
+            # Apenas a primeira imagem leva o texto limpo como legenda (se houver texto)
+            caption = texto_limpo if i == 0 else ""
+            
+            logger.info(f"⬇️ Baixando imagem [{i+1}/{len(urls_encontradas)}]: {image_url}")
+            
+            try:
+                # Baixar imagem
+                img_resp = requests.get(image_url, timeout=15)
+                img_resp.raise_for_status()
+                
+                # Converter para Base64
+                img_b64 = base64.b64encode(img_resp.content).decode('utf-8')
+                mime = img_resp.headers.get("Content-Type", "image/jpeg")
+                
+                # Enviar como mídia
+                whatsapp.send_media(telefone, caption=caption, base64_data=img_b64, mimetype=mime)
+                
+                # Pequeno delay entre imagens para não sobrecarregar a fila do celular
+                if i < len(urls_encontradas) - 1:
+                    import time
+                    time.sleep(1.0)
+            
+            except Exception as e:
+                logger.error(f"❌ Erro ao baixar/enviar imagem {image_url}: {e}")
+                # Fallback: Tentar enviar via URL
+                whatsapp.send_media(telefone, media_url=image_url, caption=caption)
         
-        try:
-            # Baixar imagem
-            img_resp = requests.get(image_url, timeout=15)
-            img_resp.raise_for_status()
-            
-            # Converter para Base64
-            img_b64 = base64.b64encode(img_resp.content).decode('utf-8')
-            mime = img_resp.headers.get("Content-Type", "image/jpeg")
-            
-            # Enviar como mídia
-            whatsapp.send_media(telefone, caption=caption, base64_data=img_b64, mimetype=mime)
-            return True
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao baixar/enviar imagem: {e}")
-            # Fallback: Tentar enviar via URL
-            whatsapp.send_media(telefone, media_url=image_url, caption=caption)
-            return True
+        return True
     
     # Mensagem normal (sem imagem)
     max_len = 500
