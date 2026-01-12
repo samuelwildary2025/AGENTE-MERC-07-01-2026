@@ -728,11 +728,14 @@ def process_async(tel, msg, mid=None):
             
             logger.info(f"📸 Detectadas {len(urls_encontradas)} URLs de imagem. Texto limpo: {texto_limpo[:50]}...")
             
-            # Enviar cada imagem
+            # 1. Enviar primeiro o TEXTO como mensagem separada (se houver texto)
+            if texto_limpo:
+                send_whatsapp_message(tel, texto_limpo)
+                # Pequeno delay térmico antes das fotos
+                time.sleep(1.0)
+            
+            # 2. Enviar cada imagem
             for i, image_url in enumerate(urls_encontradas):
-                # Apenas a primeira imagem leva o texto limpo como legenda (se houver texto)
-                caption = texto_limpo if i == 0 else ""
-                
                 logger.info(f"📸 Processando imagem [{i+1}/{len(urls_encontradas)}]: {image_url}")
                 logger.info(f"⬇️ Baixando imagem para enviar como arquivo...")
                 
@@ -746,17 +749,17 @@ def process_async(tel, msg, mid=None):
                     img_b64 = base64.b64encode(img_resp.content).decode('utf-8')
                     mime = img_resp.headers.get("Content-Type", "image/jpeg")
                     
-                    # Enviar como mídia
-                    whatsapp.send_media(tel, caption=caption, base64_data=img_b64, mimetype=mime)
+                    # Enviar como mídia (sem caption agora)
+                    whatsapp.send_media(tel, caption="", base64_data=img_b64, mimetype=mime)
                     
                     # Pequeno delay entre imagens
                     if i < len(urls_encontradas) - 1:
-                        time.sleep(1.0)
+                        time.sleep(1.2)
                         
                 except Exception as e:
                     logger.error(f"❌ Erro ao baixar/enviar imagem {image_url}: {e}")
                     # Fallback: Tentar enviar via URL
-                    whatsapp.send_media(tel, media_url=image_url, caption=caption)
+                    whatsapp.send_media(tel, media_url=image_url, caption="")
         else:
             send_whatsapp_message(tel, txt)
 
