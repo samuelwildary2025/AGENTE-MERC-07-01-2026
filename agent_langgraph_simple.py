@@ -294,7 +294,7 @@ def consultar_encarte_tool() -> str:
     Use APENAS se o cliente perguntar explicitamente sobre ofertas, promoções ou encarte.
     
     Returns:
-        JSON com a URL da imagem do encarte.
+        JSON com a URL (campo encarte_url) ou lista de URLs (campo active_encartes_urls) das imagens.
     """
     return consultar_encarte()
 

@@ -687,9 +687,10 @@ def busca_lote_produtos(produtos: list[str]) -> str:
 def consultar_encarte() -> str:
     """
     Consulta o encarte atual do supermercado.
+    Suporta múltiplos encartes via campo active_encartes_urls.
     
     Returns:
-        JSON string com a URL do encarte ou mensagem de erro.
+        JSON string com a URL (ou lista de URLs) do encarte ou mensagem de erro.
     """
     # Remove trailing slash from base to ensure correct path
     base = settings.supermercado_base_url.rstrip("/")
@@ -708,15 +709,36 @@ def consultar_encarte() -> str:
         data = response.json()
         logger.info(f"Encarte obtido com sucesso: {data}")
         
-        # FORÇAR domínio correto se a URL for relativa ou estiver com domínio antigo
-        encarte_url = data.get("encarte_url", "")
         domain = "https://app.aimerc.com.br"
         
-        if encarte_url:
-            if encarte_url.startswith("/"):
-                data["encarte_url"] = f"{domain}{encarte_url}"
-            elif "supermercadoqueiroz.com.br" in encarte_url:
-                data["encarte_url"] = encarte_url.replace("https://supermercadoqueiroz.com.br", domain).replace("http://supermercadoqueiroz.com.br", domain)
+        def _fix_url(u: str) -> str:
+            if not u: return u
+            if u.startswith("/"):
+                u = f"{domain}{u}"
+            elif "supermercadoqueiroz.com.br" in u:
+                u = u.replace("https://supermercadoqueiroz.com.br", domain).replace("http://supermercadoqueiroz.com.br", domain)
+            return u
+
+        # 1. Tentar processar lista de encartes ativos (Novo comportamento)
+        active_urls = data.get("active_encartes_urls")
+        if isinstance(active_urls, list):
+            data["active_encartes_urls"] = [_fix_url(u) for u in active_urls if u]
+            # Se tivermos a lista, atualizamos o encarte_url legado com o primeiro da lista para compatibilidade
+            if data["active_encartes_urls"]:
+                data["encarte_url"] = data["active_encartes_urls"][0]
+            else:
+                data["encarte_url"] = ""
+        
+        # 2. Fallback/Processamento fixo do campo antigo se o novo não existir ou não for lista
+        else:
+            encarte_url = data.get("encarte_url", "")
+            if encarte_url:
+                data["encarte_url"] = _fix_url(encarte_url)
+                # Garante que active_encartes_urls também exista como lista de um item
+                data["active_encartes_urls"] = [data["encarte_url"]]
+            else:
+                data["encarte_url"] = ""
+                data["active_encartes_urls"] = []
             
         return json.dumps(data, indent=2, ensure_ascii=False)
         
