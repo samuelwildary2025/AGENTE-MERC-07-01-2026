@@ -730,7 +730,7 @@ def process_async(tel, msg, mid=None):
             
             # 1. Enviar primeiro o TEXTO como mensagem separada (se houver texto)
             if texto_limpo:
-                send_whatsapp_message(tel, texto_limpo)
+                whatsapp.send_text(tel, texto_limpo)
                 # Pequeno delay térmico antes das fotos
                 time.sleep(1.0)
             

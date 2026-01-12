@@ -138,7 +138,7 @@ def _send_whatsapp_message(telefone: str, mensagem: str) -> bool:
         
         # 1. Enviar primeiro o TEXTO como mensagem separada (se houver texto)
         if texto_limpo:
-            whatsapp.send_message(telefone, texto_limpo)
+            whatsapp.send_text(telefone, texto_limpo)
             # Pequeno delay para a mensagem de texto chegar primeiro
             import time
             time.sleep(1.0)
