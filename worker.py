@@ -42,11 +42,18 @@ async def process_message(ctx: Dict[str, Any], telefone: str, mensagem: str, mes
         tempo_leitura = random.uniform(2.0, 4.0)
         await asyncio.sleep(tempo_leitura)
         
-        # 2. Marcar como LIDO (Azul)
+        # 2. Marcar como LIDO (Azul) - Suporte a múltiplos IDs
         if message_id:
-            logger.info(f"👀 Marcando chat {telefone} como lido... (mid={message_id})")
-            whatsapp.mark_as_read(telefone, message_id=message_id)
-            await asyncio.sleep(0.8)  # Delay tático
+            mids = message_id if isinstance(message_id, list) else [message_id]
+            logger.info(f"👀 Marcando chat {telefone} como lido... (MIDs: {len(mids)})")
+            
+            for mid in mids:
+                if mid:
+                    whatsapp.mark_as_read(telefone, message_id=mid)
+                    # Pequeno delay entre requests para não floodar (se forem muitos)
+                    if len(mids) > 1: await asyncio.sleep(0.1)
+            
+            await asyncio.sleep(0.8)  # Delay tático para UX
         
         # 3. Começar a "Digitar"
         whatsapp.send_presence(num, "composing")

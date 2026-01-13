@@ -106,13 +106,13 @@ def get_buffer_length(telefone: str) -> int:
 def pop_all_messages(telefone: str) -> Tuple[List[str], Optional[str]]:
     """
     Obtém todas as mensagens do buffer e limpa a chave.
-    Retorna (lista_de_textos, ultimo_message_id).
+    Retorna (lista_de_textos, lista_de_mids).
     """
     client = get_redis_client()
     import json
     
     texts = []
-    last_mid = None
+    # mids (plural) para marcar todos como lidos
     
     if client is None:
         # Fallback em memória
@@ -130,6 +130,8 @@ def pop_all_messages(telefone: str) -> Tuple[List[str], Optional[str]]:
             logger.error(f"Erro ao consumir buffer: {e}")
             return [], None
 
+    mids = []
+    
     # Processar payloads
     for raw in msgs_raw:
         try:
@@ -139,7 +141,7 @@ def pop_all_messages(telefone: str) -> Tuple[List[str], Optional[str]]:
                 txt = data.get("text", "")
                 mid = data.get("mid")
                 if txt: texts.append(txt)
-                if mid: last_mid = mid
+                if mid: mids.append(mid)
             else:
                 # String antiga ou inválida
                 texts.append(str(raw))
@@ -147,8 +149,8 @@ def pop_all_messages(telefone: str) -> Tuple[List[str], Optional[str]]:
             # Não é JSON, assume texto puro (retrocompatibilidade)
             texts.append(str(raw))
             
-    logger.info(f"Buffer consumido para {telefone}: {len(texts)} mensagens. LastID: {last_mid}")
-    return texts, last_mid
+    logger.info(f"Buffer consumido para {telefone}: {len(texts)} mensagens. MIDs: {len(mids)}")
+    return texts, mids
 
 
 # ============================================

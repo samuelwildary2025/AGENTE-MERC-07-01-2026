@@ -357,12 +357,17 @@ def estoque_preco(ean: str) -> str:
             ])
             
             if ignora_estoque:
-                # Para essas categorias, se estiver ativo, tá valendo
-                # Não importa se o estoque está 0 ou negativo
-                logger.debug(f"Item de {cat}: ignorando verificação de estoque (ativo={is_active})")
-                return True
+                # Regra de Exceção: Setor INDUSTRIAL (ex: Padaria Industrial)
+                # Produtos industrializados/embalados DEVEM respeitar o estoque do sistema
+                if "INDUSTRIAL" in cat:
+                    logger.debug(f"Item de {cat}: Setor Industrial detectado, forçando verificação de estoque.")
+                    # Continua para o check de quantidade lá embaixo...
+                else:
+                    # Se não for industrial (ex: Padaria própria, Açougue), libera geral
+                    logger.debug(f"Item de {cat}: ignorando verificação de estoque (ativo={is_active})")
+                    return True
 
-            # Para os demais (Mercearia, Bebidas, etc), estoque deve ser POSITIVO
+            # Para os demais (Mercearia, Bebidas, INDUSTRIAL, etc), estoque deve ser POSITIVO
             if qty is not None and qty > 0:
                 return True
             

@@ -951,7 +951,7 @@ async def _enqueue_buffer_job(telefone: str):
                     stall += 1
             
             # Consumir mensagens do buffer
-            msgs, last_mid = pop_all_messages(n)
+            msgs, mids = pop_all_messages(n)
             final = " | ".join([m for m in msgs if m.strip()])
             
             if not final:
@@ -960,10 +960,10 @@ async def _enqueue_buffer_job(telefone: str):
             # Obter contexto de sessão
             order_ctx = get_order_context(n, final)
             if order_ctx:
-                final = f"{order_ctx}\\n\\n{final}"
+                final = f"{order_ctx}\n\n{final}"
             
-            # MUDANÇA: Enfileirar job em vez de processar diretamente
-            await _enqueue_process_job(n, final, last_mid)
+            # MUDANÇA: Enfileirar job com LISTA de IDs
+            await _enqueue_process_job(n, final, mids)
             
     except Exception as e:
         logger.error(f"Erro no buffer_loop async: {e}")
