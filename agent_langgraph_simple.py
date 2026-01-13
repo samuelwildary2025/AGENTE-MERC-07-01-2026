@@ -65,6 +65,48 @@ def add_item_tool(telefone: str, produto: str, quantidade: float = 1.0, observac
     - unidades: deixar 0
     - preco: preço por unidade
     """
+    
+    # --- REGRAS DE NEGÓCIO (CONVERSÃO AUTOMÁTICA) ---
+    # Se o agente passar unidades, tentamos converter para peso automaticamente
+    # baseado nas regras médias do supermercado.
+    
+    prod_lower = produto.lower()
+    
+    WEIGHT_RULES = {
+        "pao frances": 0.050, "pão francês": 0.050, "carioquinha": 0.050, "pao carioquinha": 0.050,
+        "pao sovado": 0.060, "pão sovado": 0.060, "massa fina": 0.060,
+        "mini bolinha": 0.016, "mini coxinha": 0.016,
+        "tomate": 0.150, "cebola": 0.150, "batata": 0.150,
+        "frango inteiro": 2.200, "frango abatido": 2.200,
+        "calabresa": 0.250, "paio": 0.250, "linguica": 0.250,
+        "bacon": 0.300,
+        "limao": 0.100, "limão": 0.100, "banana": 0.100, "maca": 0.100, "maçã": 0.100,
+        "mamao": 1.500, "mamão": 1.500, "melao": 1.500, "melão": 1.500,
+        "melancia": 2.000,
+        "abacate": 0.600
+    }
+    
+    # Se unidades foi informado (>0) e é um produto de peso:
+    if unidades > 0:
+        # Tenta achar regra de peso
+        peso_unitario = None
+        for key, weight in WEIGHT_RULES.items():
+            if key in prod_lower:
+                peso_unitario = weight
+                break
+        
+        # Se achou regra, recalcula o peso total (Override seguro)
+        if peso_unitario:
+            novo_peso = round(unidades * peso_unitario, 3)
+            # Log de auditoria (print para debug)
+            print(f"⚖️ REGRA APLICADA: {unidades}x {produto} -> {novo_peso}kg (Era: {quantidade})")
+            quantidade = novo_peso
+            
+            # Ajuste na observação para clareza
+            obs_auto = f"(~{peso_unitario*1000:.0f}g/un)"
+            if obs_auto not in observacao:
+                observacao = f"{observacao} {obs_auto}".strip()
+
     item = {
         "produto": produto,
         "quantidade": quantidade,  # Peso em kg OU quantidade de unidades
@@ -72,10 +114,11 @@ def add_item_tool(telefone: str, produto: str, quantidade: float = 1.0, observac
         "observacao": observacao,
         "preco": preco            # Preço por kg OU por unidade
     }
+    
     import json as json_lib
     if add_item_to_cart(telefone, json_lib.dumps(item, ensure_ascii=False)):
         if unidades > 0:
-            return f"✅ Item '{produto}' ({unidades} unidades, ~{quantidade:.3f}kg) adicionado ao carrinho."
+            return f"✅ Item '{produto}' ({unidades} un, ~{quantidade:.3f}kg) adicionado. Peso calculado automaticamente."
         return f"✅ Item '{produto}' ({quantidade}) adicionado ao carrinho."
     return "❌ Erro ao adicionar item. Tente novamente."
 
@@ -298,6 +341,64 @@ def consultar_encarte_tool() -> str:
     """
     return consultar_encarte()
 
+@tool
+def calcular_total_tool(telefone: str, taxa_entrega: float = 0.0) -> str:
+    """
+    Calcula o valor exato do pedido somando itens do carrinho + taxa de entrega.
+    Use SEMPRE antes de informar o total final ao cliente.
+    
+    Args:
+    - telefone: Telefone do cliente
+    - taxa_entrega: Valor da taxa de entrega a ser somada (se houver)
+    """
+    items = get_cart_items(telefone)
+    if not items:
+        return "❌ Carrinho vazio. Não é possível calcular total."
+    
+    subtotal = 0.0
+    item_details = []
+    
+    for i, item in enumerate(items):
+        preco = float(item.get("preco", 0.0))
+        qtd = float(item.get("quantidade", 1.0))
+        nome = item.get("produto", "Item")
+        
+        valor_item = round(preco * qtd, 2)
+        subtotal += valor_item
+        item_details.append(f"- {nome}: R$ {valor_item:.2f}")
+        
+    subtotal = round(subtotal, 2)
+    taxa_entrega = round(float(taxa_entrega), 2)
+    total_final = round(subtotal + taxa_entrega, 2)
+    
+    res = (
+        f"📝 **Cálculo Oficial do Sistema:**\n"
+        f"Subtotal: R$ {subtotal:.2f}\n"
+        f"Taxa de Entrega: R$ {taxa_entrega:.2f}\n"
+        f"----------------\n"
+        f"💰 **TOTAL FINAL: R$ {total_final:.2f}**"
+    )
+    return res
+
+@tool
+def calculadora_tool(expressao: str) -> str:
+    """
+    Calculadora simples para operações matemáticas gerais.
+    Use para conferir contas ou somar valores avulsos.
+    Ex: '12.50 + 5.00', '3 * 4.50'
+    """
+    try:
+        # Sanitização básica (permitir apenas math)
+        allowed = set("0123456789.+-*/() ")
+        if not all(c in allowed for c in expressao):
+            return "❌ Caracteres inválidos na expressão."
+        
+        # Eval seguro após sanitização
+        resultado = eval(expressao, {"__builtins__": None}, {})
+        return f"🔢 {expressao} = {resultado}"
+    except Exception as e:
+        return f"❌ Erro: {str(e)}"
+
 # Ferramentas ativas
 ACTIVE_TOOLS = [
     ean_tool_alias,
@@ -312,6 +413,8 @@ ACTIVE_TOOLS = [
     finalizar_pedido_tool,
     alterar_tool,
     consultar_encarte_tool,
+    calcular_total_tool,  # Novo: Cálculo exato do pedido
+    calculadora_tool,     # Novo: Calculadora geral
     # salvar_comprovante_tool removido - comprovante agora é salvo automaticamente pelo server.py
 ]
 

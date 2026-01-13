@@ -64,17 +64,17 @@ class AgentResponse(BaseModel):
 
 # --- Helpers ---
 
-def process_pdf(message_id: str) -> Optional[str]:
+def process_pdf(message_id: str) -> tuple[Optional[str], Optional[str]]:
     """
     Baixa o PDF via nova API e extrai o texto.
-    Usa whatsapp.get_media_base64() para obter o conteúdo.
+    Retorna (texto_extraido, base64_content).
     """
     if not PdfReader:
         logger.error("❌ Biblioteca pypdf não instalada. Adicione ao requirements.txt")
-        return "[Erro: sistema não suporta leitura de PDF]"
+        return "[Erro: sistema não suporta leitura de PDF]", None
 
     if not message_id:
-        return None
+        return None, None
     
     logger.info(f"📄 Processando PDF: {message_id}")
     
@@ -86,10 +86,12 @@ def process_pdf(message_id: str) -> Optional[str]:
         
         if not media_data or not media_data.get("base64"):
             logger.error(f"❌ Falha ao obter PDF: {message_id}")
-            return None
+            return None, None
+        
+        b64_content = media_data["base64"]
         
         # Decodificar Base64
-        pdf_bytes = base64.b64decode(media_data["base64"])
+        pdf_bytes = base64.b64decode(b64_content)
         
         # Ler PDF em memória
         f = io.BytesIO(pdf_bytes)
@@ -99,15 +101,15 @@ def process_pdf(message_id: str) -> Optional[str]:
         for page in reader.pages:
             text_content.append(page.extract_text())
             
-        full_text = "\n".join(text_content)
+        full_text = "\\n".join(text_content)
         full_text = re.sub(r'\s+', ' ', full_text).strip()
         
         logger.info(f"✅ PDF lido com sucesso ({len(full_text)} chars)")
-        return full_text
+        return full_text, b64_content
         
     except Exception as e:
         logger.error(f"Erro ao ler PDF: {e}")
-        return None
+        return None, None
 
 def transcribe_audio(message_id: str = None, base64_data: str = None, mimetype: str = None) -> Optional[str]:
     """
@@ -153,7 +155,7 @@ def transcribe_audio(message_id: str = None, base64_data: str = None, mimetype: 
         return None
     
     try:
-        logger.info(f"🎧 Transcrevendo áudio com Gemini (mime: {mime_type_clean})")
+        logger.info(f"🎧 Transcrevendo áudio com Gemini ({mime_type_clean})")
         
         from google import genai
         client = genai.Client(api_key=settings.google_api_key)
@@ -254,11 +256,11 @@ def analyze_image(message_id: Optional[str], url: Optional[str] = None) -> Optio
         image_file = client.files.upload(file=file_path, config={"mime_type": mime_type_clean or "image/jpeg"})
 
         prompt = (
-            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\n\n"
+            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\\n\\n"
             "1. Se for um COMPROVANTE DE PAGAMENTO (PIX, transferência, recibo bancário): "
-            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\n\n"
-            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\n\n"
-            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\n\n"
+            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\\n\\n"
+            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\\n\\n"
+            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\\n\\n"
             "Retorne um texto curto em português. Não invente detalhes."
         )
 
@@ -320,11 +322,11 @@ def _analyze_image_from_base64(base64_data: str, mimetype: str = None) -> Option
         image_file = client.files.upload(file=file_path, config={"mime_type": mime_type_clean})
         
         prompt = (
-            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\n\n"
+            "Analise cuidadosamente esta imagem. Identifique o que ela contém:\\n\\n"
             "1. Se for um COMPROVANTE DE PAGAMENTO (PIX, transferência, recibo bancário): "
-            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\n\n"
-            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\n\n"
-            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\n\n"
+            "Diga 'COMPROVANTE DE PAGAMENTO' e extraia: valor, data/hora, nome do pagador e do recebedor se visíveis.\\n\\n"
+            "2. Se for um PRODUTO: Retorne nome do produto, marca, versão/sabor/variante, tamanho/peso/volume.\\n\\n"
+            "3. Se não for identificável (foto borrada, pessoa, conversa): Diga 'Imagem não identificada'.\\n\\n"
             "Retorne um texto curto em português. Não invente detalhes."
         )
         
@@ -400,7 +402,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
             jid = jid.split(":")[0]
             
         # Remove tudo que não for dígito
-        num = re.sub(r"\D", "", jid)
+        num = re.sub(r"\\D", "", jid)
         
         # Validação básica (evita IDs estranhos)
         # Aumentado limite superior para números internacionais
@@ -460,7 +462,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not telefone and payload.get("from"):
         raw = str(payload.get("from"))
         if "@lid" not in raw:
-            telefone = re.sub(r"\D", "", raw)
+            telefone = re.sub(r"\\D", "", raw)
             logger.warning(f"⚠️ Usando fallback de telefone: {telefone}")
 
     # --- Extração de Conteúdo (Adaptado para nova API) ---
@@ -548,7 +550,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
     if from_me:
         # Se for mensagem enviada por MIM, tenta achar o destinatário
         candidates_me = [chat.get("wa_id"), chat.get("phone"), payload.get("sender"), payload.get("to")]
-        telefone = next((re.sub(r"\D", "", c) for c in candidates_me if c and "@lid" not in str(c)), telefone)
+        telefone = next((re.sub(r"\\D", "", c) for c in candidates_me if c and "@lid" not in str(c)), telefone)
 
     # --- Lógica de Mídia ---
     if message_type == "audio" and not mensagem_texto:
@@ -582,7 +584,7 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
         
         if analysis:
             base = caption.strip()
-            mensagem_texto = f"{base}\n[Análise da imagem]: {analysis}".strip() if base else f"[Análise da imagem]: {analysis}"
+            mensagem_texto = f"{base}\\n[Análise da imagem]: {analysis}".strip() if base else f"[Análise da imagem]: {analysis}"
             
             # AUTO-SAVE: Se for comprovante de pagamento, salvar Base64 no Redis automaticamente
             if "COMPROVANTE" in analysis.upper() and media_base64:
@@ -597,15 +599,58 @@ def _extract_incoming(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     elif message_type == "document":
         pdf_text = ""
-        if message_id:
-            extracted = process_pdf(message_id)
-            if extracted:
-                pdf_text = f"\n[Conteúdo PDF]: {extracted[:1200]}..."
+        pdf_b64 = media_base64 # Prioriza o que veio no webhook
         
-        if pdf_text:
-            mensagem_texto = f"Comprovante/PDF Recebido. {pdf_text}"
+        if message_id and not pdf_b64:
+            # Se não veio b64 no webhook, tenta baixar/processar
+            extracted_text, extracted_b64 = process_pdf(message_id)
+            if extracted_text:
+                pdf_text = f"\\n[Conteúdo PDF]: {extracted_text[:1200]}..."
+            if extracted_b64:
+                pdf_b64 = extracted_b64
+        elif pdf_b64 and message_id:
+            # Se veio b64, ainda tentamos extrair texto se possível (mas sem baixar de novo se passarmos o stream?
+            # Por simplicidade, se já temos b64, process_pdf baixaria de novo via API?
+            # A função process_pdf usa get_media_base64.
+            # Vamos tentar extrair texto só se tivermos pypdf e o bytes
+            if PdfReader:
+                try:
+                    import base64
+                    pdf_bytes = base64.b64decode(pdf_b64)
+                    f = io.BytesIO(pdf_bytes)
+                    reader = PdfReader(f)
+                    text_content = [page.extract_text() for page in reader.pages]
+                    full_text = "\\n".join(text_content)
+                    full_text = re.sub(r'\s+', ' ', full_text).strip()
+                    if full_text:
+                        pdf_text = f"\\n[Conteúdo PDF]: {full_text[:1200]}..."
+                except Exception as e:
+                    logger.error(f"Erro extração texto PDF local: {e}")
+
+        # AUTO-SAVE PDF (Comprovante)
+        # Se tem texto extraído ou caption contendo palavras-chave
+        keywords = ["comprovante", "pix", "pagamento", "recibo", "transferencia", "transferência", "comprovante"]
+        content_check = (mensagem_texto or "") + (pdf_text or "") + (media_caption or "")
+        is_receipt = any(k in content_check.lower() for k in keywords)
+        
+        # Salvar se for identificado como recibo OU se estivermos num fluxo muito óbvio (ex: PDF enviado sozinho)
+        # Por segurança, salvamos se tivermos o binário. O agente decide se usa ou não, 
+        # mas como o finalizar_pedido_tool pega o ÚLTIMO comprovante salvo, é bom garantir.
+        if pdf_b64:
+            from tools.redis_tools import set_comprovante
+            mime = media_mimetype or "application/pdf"
+            # O painel/backend precisa saber lidar com data URI de PDF
+            data_uri = f"data:{mime};base64,{pdf_b64}"
+            set_comprovante(telefone, data_uri)
+            logger.info(f"🧾 PDF Comprovante salvo automaticamente para {telefone} (Size: {len(pdf_b64)})")
+            
+            # Avisar no texto que foi salvo
+            mensagem_texto = f"📄 Documento PDF Recebido e Salvo como Comprovante. {media_caption or ''} {pdf_text}"
         else:
-            mensagem_texto = "[PDF recebido, não foi possível extrair texto]"
+            if pdf_text:
+                mensagem_texto = f"📄 Comprovante/PDF Recebido (Texto extraído). {pdf_text}"
+            else:
+                mensagem_texto = "[PDF recebido, não foi possível extrair texto ou salvar arquivo]"
 
     return {
         "telefone": telefone,
@@ -628,7 +673,7 @@ def send_whatsapp_message(telefone: str, mensagem: str) -> bool:
     
     if len(mensagem) > max_len:
         # Divide por parágrafos duplos primeiro
-        paragrafos = mensagem.split('\n\n')
+        paragrafos = mensagem.split('\\n\\n')
         curr = ""
         
         for p in paragrafos:
@@ -638,18 +683,18 @@ def send_whatsapp_message(telefone: str, mensagem: str) -> bool:
                     msgs.append(curr.strip())
                     curr = ""
                 # Divide parágrafo grande por linhas
-                linhas = p.split('\n')
+                linhas = p.split('\\n')
                 for linha in linhas:
                     if len(curr) + len(linha) + 1 <= max_len:
-                        curr += linha + "\n"
+                        curr += linha + "\\n"
                     else:
                         if curr: msgs.append(curr.strip())
-                        curr = linha + "\n"
+                        curr = linha + "\\n"
             elif len(curr) + len(p) + 2 <= max_len:
-                curr += p + "\n\n"
+                curr += p + "\\n\\n"
             else:
                 if curr: msgs.append(curr.strip())
-                curr = p + "\n\n"
+                curr = p + "\\n\\n"
         
         if curr: msgs.append(curr.strip())
     else:
@@ -690,7 +735,7 @@ def process_async(tel, msg, mid=None):
     6. Envia.
     """
     try:
-        num = re.sub(r"\D", "", tel)
+        num = re.sub(r"\\D", "", tel)
         
         # 1. Simular "Lendo" (Delay Humano)
         tempo_leitura = random.uniform(2.0, 4.0) 
@@ -724,7 +769,7 @@ def process_async(tel, msg, mid=None):
             texto_limpo = txt
             for url in urls_encontradas:
                 # Substitui links seguidos opcionalmente por quebras de linha/espaços
-                texto_limpo = re.sub(re.escape(url) + r'[\s\n]*', '', texto_limpo).strip()
+                texto_limpo = re.sub(re.escape(url) + r'[\\s\\n]*', '', texto_limpo).strip()
             
             logger.info(f"📸 Detectadas {len(urls_encontradas)} URLs de imagem. Texto limpo: {texto_limpo[:50]}...")
             
@@ -768,7 +813,7 @@ def process_async(tel, msg, mid=None):
     finally:
         # Garante limpeza
         send_presence(tel, "paused")
-        presence_sessions.pop(re.sub(r"\D", "", tel), None)
+        presence_sessions.pop(re.sub(r"\\D", "", tel), None)
 
 def buffer_loop(tel):
     """
@@ -779,7 +824,7 @@ def buffer_loop(tel):
     a execução do agente e as processa também (evita mensagens "perdidas").
     """
     try:
-        n = re.sub(r"\D","",tel)
+        n = re.sub(r"\\D","",tel)
         
         while True:  # Loop principal para pegar mensagens que chegam durante processamento
             prev = get_buffer_length(n)
@@ -810,7 +855,7 @@ def buffer_loop(tel):
             # Obter contexto de sessão
             order_ctx = get_order_context(n, final)
             if order_ctx:
-                final = f"{order_ctx}\n\n{final}"
+                final = f"{order_ctx}\\n\\n{final}"
             
             # Processar (enquanto isso, novas mensagens podem chegar)
             # Passa o last_mid para marcar como lido
@@ -822,7 +867,7 @@ def buffer_loop(tel):
     except Exception as e:
         logger.error(f"Erro no buffer_loop: {e}")
     finally: 
-        buffer_sessions.pop(re.sub(r"\D","",tel), None)
+        buffer_sessions.pop(re.sub(r"\\D","",tel), None)
 
 # --- ARQ Pool Lifecycle ---
 @app.on_event("startup")
@@ -888,7 +933,7 @@ async def _enqueue_buffer_job(telefone: str):
         telefone: Número do cliente (apenas números)
     """
     try:
-        n = re.sub(r"\D","",telefone)
+        n = re.sub(r"\\D","",telefone)
         
         while True:
             prev = get_buffer_length(n)
@@ -915,7 +960,7 @@ async def _enqueue_buffer_job(telefone: str):
             # Obter contexto de sessão
             order_ctx = get_order_context(n, final)
             if order_ctx:
-                final = f"{order_ctx}\n\n{final}"
+                final = f"{order_ctx}\\n\\n{final}"
             
             # MUDANÇA: Enfileirar job em vez de processar diretamente
             await _enqueue_process_job(n, final, last_mid)
@@ -923,7 +968,7 @@ async def _enqueue_buffer_job(telefone: str):
     except Exception as e:
         logger.error(f"Erro no buffer_loop async: {e}")
     finally:
-        buffer_sessions.pop(re.sub(r"\D","",telefone), None)
+        buffer_sessions.pop(re.sub(r"\\D","",telefone), None)
 
 # --- Endpoints ---
 @app.get("/")
@@ -973,7 +1018,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
             agent_number = (settings.whatsapp_agent_number or "").strip()
             if agent_number:
                 # Limpar para comparação
-                agent_clean = re.sub(r"\D", "", agent_number)
+                agent_clean = re.sub(r"\\D", "", agent_number)
                 # Se a mensagem foi enviada PARA um cliente (não é conversa interna)
                 if tel and tel != agent_clean:
                     # Ativar cooldown - IA pausa por X minutos
@@ -985,7 +1030,7 @@ async def webhook(req: Request, tasks: BackgroundTasks):
             except: pass
             return JSONResponse(content={"status":"ignored_self"})
 
-        num = re.sub(r"\D","",tel)
+        num = re.sub(r"\\D","",tel)
         
         # NOTA: 'send_presence' imediato removido para evitar comportamento robótico.
         # O cliente verá 'digitando' apenas após o buffer, no process_async.
