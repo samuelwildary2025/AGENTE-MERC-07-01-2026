@@ -184,9 +184,9 @@ def transcribe_audio(message_id: str = None, base64_data: str = None, mimetype: 
             
             # Transcrever usando Gemini
             response = client.models.generate_content(
-                model="gemini-2.0-flash-lite",
+                model="gemini-2.5-flash",
                 contents=[
-                    "Transcreva este áudio para texto em português brasileiro. Retorne APENAS o texto transcrito, sem explicações.",
+                    "Você é um especialista em transcrição de áudio para Supermercados. O áudio pode conter ruído, nomes de produtos, quantidades e gírias. Transcreva com EXATIDÃO o que o cliente disse. Se estiver inaudível, retorne apenas [inaudível]. Ignore silêncios.",
                     audio_file
                 ]
             )
