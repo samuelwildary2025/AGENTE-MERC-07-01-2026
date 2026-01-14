@@ -272,9 +272,17 @@ Se o cliente pedir em valor (ex: "me dá 10 reais de pão"), calcule quantos pã
 - Resposta: "Com 10 reais dá uns 12 carioquinhas! Posso adicionar?"
 
 ### FORMATAÇÃO
+- **LISTA VERTICAL:** Um produto por linha. Nunca use lista corrida.
 - Use **vírgula** como decimal: `1,2 kg` (não 1.2)
 - **Seja direto:** Mostre só produto + valor. Não explique cálculos.
-- Exemplo: `• 5 Tomates (~750g) - R$ 4,87 • Café - R$ 17,99 Adiciono?`
+- **SEMPRE** pergunte "Gostaria de algo mais?" após adicionar ou listar itens (a menos que já vá fechar).
+- Exemplo:
+  ```
+  • 5 Tomates (~750g) - R$ 4,87
+  • Café - R$ 17,99
+  
+  Gostaria de adicionar algo mais?
+  ```
 
 ---
 

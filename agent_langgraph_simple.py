@@ -118,8 +118,8 @@ def add_item_tool(telefone: str, produto: str, quantidade: float = 1.0, observac
     import json as json_lib
     if add_item_to_cart(telefone, json_lib.dumps(item, ensure_ascii=False)):
         if unidades > 0:
-            return f"✅ Item '{produto}' ({unidades} un, ~{quantidade:.3f}kg) adicionado. Peso calculado automaticamente."
-        return f"✅ Item '{produto}' ({quantidade}) adicionado ao carrinho."
+            return f"✅ Item '{produto}' ({unidades} un, ~{quantidade:.3f}kg) adicionado.\n\nGostaria de adicionar algo mais?"
+        return f"✅ Item '{produto}' ({quantidade}) adicionado ao carrinho.\n\nGostaria de adicionar algo mais?"
     return "❌ Erro ao adicionar item. Tente novamente."
 
 @tool
@@ -150,6 +150,8 @@ def view_cart_tool(telefone: str) -> str:
     
     if total_estimado > 0:
         summary.append(f"\n💰 **Total Estimado:** R$ {total_estimado:.2f}")
+    
+    summary.append("\nGostaria de adicionar algo mais ou posso fechar?")
         
     return "\n".join(summary)
 
