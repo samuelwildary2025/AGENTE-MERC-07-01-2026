@@ -466,10 +466,12 @@ def create_agent_with_history():
 
 _agent_graph = None
 def get_agent_graph():
-    global _agent_graph
-    if _agent_graph is None:
-        _agent_graph = create_agent_with_history()
-    return _agent_graph
+    # Removido cache global para permitir hot-reload do prompt
+    # global _agent_graph
+    # if _agent_graph is None:
+    #     _agent_graph = create_agent_with_history()
+    # return _agent_graph
+    return create_agent_with_history()
 
 # ============================================
 # Função Principal
