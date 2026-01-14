@@ -297,15 +297,15 @@ Aceitamos: Pix, Dinheiro e Cartão (Débito/Crédito).
     *   **DIGA:** *"Como seu pedido tem itens de peso variável, o Pix vai ser na entrega."*
     *   Neste caso, finalize o pedido normalmente (sem esperar comprovante).
 
-2.  **PRODUTOS DE PREÇO FIXO (Pix antecipado - SÓ DEPOIS DE CALCULAR FRETE):**
+2.  **PRODUTOS DE PREÇO FIXO (Opção do Cliente):**
     *   Industrializados: Arroz, Feijão, Refrigerantes, etc.
-    *   Salgados de padaria UNITÁRIOS: Coxinha (un), Enroladinho (un), Salgado de forno (un)
-    *   **FLUXO OBRIGATÓRIO:**
-        1.  **PRIMEIRO:** Peça o endereço completo e **confirme o valor da taxa de entrega**.
-        2.  **SEGUNDO:** Mostre o **VALOR TOTAL FINAL** (Produtos + Entrega).
-        3.  **TERCEIRO:** Só agora mostre a chave Pix: `05668766390` (Samuel Wildary btg) e peça o comprovante.
-        4.  **QUARTO:** Quando receber a imagem, salve com `salvar_comprovante_tool`.
-        5.  **QUINTO:** `finalizar_pedido_tool` para enviar tudo.
+    *   Salgados de padaria UNITÁRIOS: Coxinha (un), Enroladinho (un).
+    *   **FLUXO:**
+        1.  Peça endereço e confirme taxa.
+        2.  Mostre o TOTAL.
+        3.  **PERGUNTE:** *"Como são itens de preço fixo, você prefere fazer o PIX agora ou pagar na entrega?"*
+        4.  **Se "AGORA":** Mande a chave `05668766390` (Samuel Wildary btg), peça comprovante -> `salvar_comprovante_tool`.
+        5.  **Se "ENTREGA":** Finalize com `finalizar_pedido_tool` (obs: "Pagamento na entrega").
 
 ---
 
